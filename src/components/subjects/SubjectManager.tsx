@@ -37,20 +37,28 @@ export const SubjectManager = () => {
   const [selectedTopicForYoutube, setSelectedTopicForYoutube] = useState<Topic | null>(null);
   const [isAddingSubject, setIsAddingSubject] = useState(false);
   const [isAddingTopic, setIsAddingTopic] = useState(false);
+  const [isLoaded, setIsLoaded] = useState(false);
   const { toast } = useToast();
 
   // Load data from localStorage
   useEffect(() => {
     const savedSubjects = localStorage.getItem("studyPlannerSubjects");
     if (savedSubjects) {
-      setSubjects(JSON.parse(savedSubjects));
+      try {
+        setSubjects(JSON.parse(savedSubjects));
+      } catch (error) {
+        console.error("Error parsing saved subjects:", error);
+      }
     }
+    setIsLoaded(true);
   }, []);
 
-  // Save data to localStorage
+  // Save data to localStorage (only after initial load)
   useEffect(() => {
-    localStorage.setItem("studyPlannerSubjects", JSON.stringify(subjects));
-  }, [subjects]);
+    if (isLoaded) {
+      localStorage.setItem("studyPlannerSubjects", JSON.stringify(subjects));
+    }
+  }, [subjects, isLoaded]);
 
   const addSubject = (data: { name: string; examDate: string; dailyHours: number }) => {
     const newSubject: Subject = {
