@@ -2,7 +2,8 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Calendar, Clock, Brain, CheckCircle2, AlertCircle, Download, RefreshCw } from "lucide-react";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Calendar, Clock, Brain, CheckCircle2, AlertCircle, Download, RefreshCw, Youtube, FileText, ExternalLink } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { AIScheduler } from "@/utils/aiScheduler";
 
@@ -11,6 +12,7 @@ export const ScheduleView = () => {
   const [schedulePlan, setSchedulePlan] = useState<any>(null);
   const [selectedWeek, setSelectedWeek] = useState(0);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [selectedTask, setSelectedTask] = useState<any>(null);
   const { toast } = useToast();
 
   const scheduler = new AIScheduler();
@@ -314,16 +316,27 @@ export const ScheduleView = () => {
                         <span className="text-xs text-muted-foreground">
                           {task.estimatedHours}h
                         </span>
-                        {!task.completed && !isPast && (
+                        <div className="flex gap-1">
                           <Button 
                             size="sm" 
                             variant="outline" 
-                            className="h-6 text-xs px-2"
-                            onClick={() => markTaskCompleted(task.id)}
+                            className="h-6 w-6 p-0"
+                            onClick={() => setSelectedTask(task)}
+                            title="View details"
                           >
-                            Done
+                            <FileText className="h-3 w-3" />
                           </Button>
-                        )}
+                          {!task.completed && !isPast && (
+                            <Button 
+                              size="sm" 
+                              variant="outline" 
+                              className="h-6 text-xs px-2"
+                              onClick={() => markTaskCompleted(task.id)}
+                            >
+                              Done
+                            </Button>
+                          )}
+                        </div>
                       </div>
                     </div>
                   ))
@@ -333,6 +346,89 @@ export const ScheduleView = () => {
           );
         })}
       </div>
+
+      {/* Task Details Dialog */}
+      {selectedTask && (
+        <Dialog open={!!selectedTask} onOpenChange={() => setSelectedTask(null)}>
+          <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <FileText className="h-5 w-5" />
+                {selectedTask.topicTitle}
+              </DialogTitle>
+              <DialogDescription>
+                Study materials and resources for {selectedTask.subjectName}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-6">
+              {/* Task Info */}
+              <div className="flex items-center gap-4">
+                <Badge className={getDifficultyColor(selectedTask.difficulty)}>
+                  {selectedTask.difficulty.toUpperCase()}
+                </Badge>
+                <Badge variant="outline">
+                  {selectedTask.estimatedHours} hours
+                </Badge>
+                <Badge variant="outline">
+                  {new Date(selectedTask.date).toLocaleDateString()}
+                </Badge>
+              </div>
+
+              {/* YouTube Resources */}
+              {selectedTask.youtubeLinks && selectedTask.youtubeLinks.length > 0 && (
+                <div className="space-y-3">
+                  <h3 className="text-lg font-semibold flex items-center gap-2">
+                    <Youtube className="h-5 w-5" />
+                    YouTube Learning Resources
+                  </h3>
+                  <div className="grid gap-3">
+                    {selectedTask.youtubeLinks.map((link: string, index: number) => {
+                      const titles = [
+                        "📚 Tutorial & Explanation",
+                        "💡 Worked Examples", 
+                        "🎯 Practice Problems",
+                        "⚡ Crash Course",
+                        "📋 Step-by-Step Guide"
+                      ];
+                      return (
+                        <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
+                          <div>
+                            <h4 className="font-medium">{titles[index] || `Resource ${index + 1}`}</h4>
+                            <p className="text-sm text-muted-foreground">YouTube search results</p>
+                          </div>
+                          <Button 
+                            size="sm" 
+                            variant="outline"
+                            onClick={() => window.open(link, '_blank')}
+                          >
+                            <ExternalLink className="h-4 w-4 mr-2" />
+                            Open
+                          </Button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Study Notes */}
+              {selectedTask.notes && (
+                <div className="space-y-3">
+                  <h3 className="text-lg font-semibold flex items-center gap-2">
+                    <FileText className="h-5 w-5" />
+                    AI Study Notes
+                  </h3>
+                  <div className="bg-muted/50 p-6 rounded-lg">
+                    <pre className="whitespace-pre-wrap text-sm font-mono">
+                      {selectedTask.notes}
+                    </pre>
+                  </div>
+                </div>
+              )}
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 };

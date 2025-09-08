@@ -7,7 +7,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { BookOpen, Plus, Clock, Trash2, Edit, Youtube } from "lucide-react";
+import { BookOpen, Plus, Clock, Trash2, Edit, Youtube, FileText, ExternalLink } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface Topic {
@@ -18,6 +18,7 @@ interface Topic {
   completed: boolean;
   progress: number;
   youtubeLinks?: string[];
+  notes?: string;
 }
 
 interface Subject {
@@ -32,6 +33,8 @@ interface Subject {
 export const SubjectManager = () => {
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [selectedSubject, setSelectedSubject] = useState<Subject | null>(null);
+  const [selectedTopic, setSelectedTopic] = useState<Topic | null>(null);
+  const [selectedTopicForYoutube, setSelectedTopicForYoutube] = useState<Topic | null>(null);
   const [isAddingSubject, setIsAddingSubject] = useState(false);
   const [isAddingTopic, setIsAddingTopic] = useState(false);
   const { toast } = useToast();
@@ -75,6 +78,7 @@ export const SubjectManager = () => {
       completed: false,
       progress: 0,
       youtubeLinks: generateYouTubeLinks(data.title),
+      notes: generateTopicNotes(data.title, data.difficulty),
     };
 
     setSubjects(subjects.map(subject => 
@@ -90,14 +94,102 @@ export const SubjectManager = () => {
   };
 
   const generateYouTubeLinks = (topicTitle: string): string[] => {
-    // Simulate YouTube API - In real app, this would use actual YouTube Data API
+    // Generate multiple specific YouTube search queries for better learning resources
     const baseUrl = "https://www.youtube.com/results?search_query=";
-    const query = encodeURIComponent(`${topicTitle} tutorial explanation`);
     return [
-      `${baseUrl}${query}`,
-      `${baseUrl}${encodeURIComponent(`${topicTitle} examples`)}`,
+      `${baseUrl}${encodeURIComponent(`${topicTitle} tutorial explanation`)}`,
+      `${baseUrl}${encodeURIComponent(`${topicTitle} examples solved`)}`,
       `${baseUrl}${encodeURIComponent(`${topicTitle} practice problems`)}`,
+      `${baseUrl}${encodeURIComponent(`${topicTitle} crash course`)}`,
+      `${baseUrl}${encodeURIComponent(`${topicTitle} step by step guide`)}`,
     ];
+  };
+
+  const generateTopicNotes = (topicTitle: string, difficulty: string): string => {
+    // Generate AI-like study notes based on topic and difficulty
+    const notes = {
+      easy: `📚 Study Notes for ${topicTitle}
+
+🎯 Learning Objectives:
+• Understand the basic concepts of ${topicTitle}
+• Apply fundamental principles
+• Solve simple problems
+
+📖 Key Concepts:
+• Start with the definition and basic principles
+• Focus on understanding rather than memorization
+• Practice with simple examples
+
+💡 Study Tips:
+• Spend 20% time on theory, 80% on practice
+• Use visual aids and diagrams
+• Review regularly to reinforce learning
+
+⏰ Recommended Study Approach:
+1. Read and understand basic concepts (30 mins)
+2. Work through examples (45 mins)
+3. Practice simple problems (45 mins)
+4. Review and summarize (30 mins)`,
+
+      medium: `📚 Study Notes for ${topicTitle}
+
+🎯 Learning Objectives:
+• Master intermediate concepts of ${topicTitle}
+• Apply knowledge to complex scenarios
+• Develop problem-solving strategies
+
+📖 Key Concepts:
+• Build upon basic foundations
+• Understand relationships between concepts
+• Learn multiple approaches to problem-solving
+
+💡 Study Tips:
+• Create concept maps to visualize connections
+• Practice with varied problem types
+• Teach the concept to someone else
+• Use active recall techniques
+
+⏰ Recommended Study Approach:
+1. Review prerequisites (20 mins)
+2. Study new concepts thoroughly (60 mins)
+3. Work through medium-level problems (90 mins)
+4. Create summary notes (30 mins)
+5. Test understanding with practice questions (60 mins)`,
+
+      hard: `📚 Study Notes for ${topicTitle}
+
+🎯 Learning Objectives:
+• Master advanced concepts of ${topicTitle}
+• Synthesize knowledge from multiple sources
+• Solve complex, multi-step problems
+
+📖 Key Concepts:
+• Advanced theoretical understanding required
+• Integration with other topics essential
+• Critical thinking and analysis needed
+
+💡 Study Tips:
+• Break down complex problems into smaller parts
+• Use multiple resources and perspectives
+• Form study groups for discussion
+• Create detailed concept maps
+• Practice explaining complex ideas simply
+
+⏰ Recommended Study Approach:
+1. Thorough review of related topics (45 mins)
+2. Deep study of advanced concepts (90 mins)
+3. Analyze complex examples (75 mins)
+4. Work through challenging problems (120 mins)
+5. Create comprehensive notes (45 mins)
+6. Test with advanced practice questions (90 mins)
+
+🔄 Review Schedule:
+• Daily: Quick concept review (15 mins)
+• Weekly: Practice problems (60 mins)
+• Monthly: Comprehensive review (3 hours)`
+    };
+
+    return notes[difficulty as keyof typeof notes] || notes.medium;
   };
 
   const updateTopicProgress = (subjectId: string, topicId: string, progress: number) => {
@@ -269,7 +361,16 @@ export const SubjectManager = () => {
                           <Button 
                             size="sm" 
                             variant="outline"
-                            onClick={() => window.open(topic.youtubeLinks?.[0], '_blank')}
+                            onClick={() => setSelectedTopic(topic)}
+                            title="View study notes"
+                          >
+                            <FileText className="h-4 w-4" />
+                          </Button>
+                          <Button 
+                            size="sm" 
+                            variant="outline"
+                            onClick={() => setSelectedTopicForYoutube(topic)}
+                            title="YouTube resources"
                           >
                             <Youtube className="h-4 w-4" />
                           </Button>
@@ -293,6 +394,82 @@ export const SubjectManager = () => {
           )}
         </div>
       </div>
+
+      {/* Topic Notes Dialog */}
+      {selectedTopic && (
+        <Dialog open={!!selectedTopic} onOpenChange={() => setSelectedTopic(null)}>
+          <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <FileText className="h-5 w-5" />
+                Study Notes: {selectedTopic.title}
+              </DialogTitle>
+              <DialogDescription>
+                AI-generated study notes tailored for {selectedTopic.difficulty} difficulty level
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div className="flex items-center gap-2">
+                <Badge className={getDifficultyColor(selectedTopic.difficulty)}>
+                  {selectedTopic.difficulty.toUpperCase()}
+                </Badge>
+                <Badge variant="outline">
+                  {selectedTopic.estimatedHours} hours
+                </Badge>
+              </div>
+              <div className="bg-muted/50 p-6 rounded-lg">
+                <pre className="whitespace-pre-wrap text-sm font-mono">
+                  {selectedTopic.notes}
+                </pre>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* YouTube Resources Dialog */}
+      {selectedTopicForYoutube && (
+        <Dialog open={!!selectedTopicForYoutube} onOpenChange={() => setSelectedTopicForYoutube(null)}>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Youtube className="h-5 w-5" />
+                YouTube Resources: {selectedTopicForYoutube.title}
+              </DialogTitle>
+              <DialogDescription>
+                Curated learning resources to help you master this topic
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-3">
+              {selectedTopicForYoutube.youtubeLinks?.map((link, index) => {
+                const titles = [
+                  "📚 Tutorial & Explanation",
+                  "💡 Worked Examples",
+                  "🎯 Practice Problems",
+                  "⚡ Crash Course",
+                  "📋 Step-by-Step Guide"
+                ];
+                return (
+                  <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
+                    <div>
+                      <h4 className="font-medium">{titles[index] || `Resource ${index + 1}`}</h4>
+                      <p className="text-sm text-muted-foreground">YouTube search results</p>
+                    </div>
+                    <Button 
+                      size="sm" 
+                      variant="outline"
+                      onClick={() => window.open(link, '_blank')}
+                    >
+                      <ExternalLink className="h-4 w-4 mr-2" />
+                      Open
+                    </Button>
+                  </div>
+                );
+              })}
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 };

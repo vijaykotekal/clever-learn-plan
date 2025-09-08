@@ -9,6 +9,8 @@ interface Topic {
   progress: number;
   subjectId: string;
   subjectName: string;
+  youtubeLinks?: string[];
+  notes?: string;
 }
 
 interface Subject {
@@ -30,6 +32,8 @@ interface DailyTask {
   difficulty: "easy" | "medium" | "hard";
   completed: boolean;
   actualHours?: number;
+  youtubeLinks?: string[];
+  notes?: string;
 }
 
 interface SchedulePlan {
@@ -155,7 +159,9 @@ export class AIScheduler {
             subjectName: topic.subjectName,
             estimatedHours: hoursToAllocate,
             difficulty: topic.difficulty,
-            completed: false
+            completed: false,
+            youtubeLinks: topic.youtubeLinks,
+            notes: topic.notes
           };
           
           dayTasks.push(task);
@@ -270,7 +276,9 @@ export class AIScheduler {
           subjectName: topic.subjectName,
           estimatedHours: Math.max(0.25, topic.estimatedHours * 0.1), // 10% of original time
           difficulty: topic.difficulty,
-          completed: false
+          completed: false,
+          youtubeLinks: topic.youtubeLinks,
+          notes: topic.notes
         };
         
         reviewTasks.push(reviewTask);
