@@ -133,9 +133,14 @@ export const Dashboard = ({ onNavigate }: DashboardProps) => {
           <Brain className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
           <h3 className="text-xl font-semibold mb-2">No study plan yet</h3>
           <p className="text-muted-foreground mb-4">Add subjects and topics to generate your AI-powered study schedule</p>
-          <Button variant="study" onClick={() => onNavigate("subjects")}>
-            Add Your First Subject
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="study" onClick={() => onNavigate("subjects")}>
+              Add Your First Subject
+            </Button>
+            <Button variant="outline" onClick={() => onNavigate("study-modes")}>
+              Study Modes
+            </Button>
+          </div>
         </div>
       </div>
     );

@@ -128,11 +128,17 @@ export const SubjectManager = () => {
     });
   };
 
-  const addTopic = (subjectId: string, data: { title: string; estimatedHours: number; difficulty: "easy" | "medium" | "hard" }) => {
+  const addTopic = (subjectId: string, data: { title: string; estimatedHours?: number; difficulty: "easy" | "medium" | "hard" }) => {
+    const subject = subjects.find(s => s.id === subjectId);
+    if (!subject) return;
+    
+    // Use existing subject's dailyHours divided by total topics if no hours specified
+    const estimatedHours = data.estimatedHours || (subject.dailyHours / (subject.topics.length + 1));
+    
     const newTopic: Topic = {
       id: Date.now().toString(),
       title: data.title,
-      estimatedHours: data.estimatedHours,
+      estimatedHours,
       difficulty: data.difficulty,
       completed: false,
       progress: 0,

@@ -58,6 +58,15 @@ export const Header = ({
               <Brain className="h-4 w-4" />
               AI Schedule
             </Button>
+            <Button
+              variant={currentView === "study-modes" ? "default" : "ghost"}
+              size="sm"
+              onClick={() => onViewChange("study-modes")}
+              className="flex items-center gap-2"
+            >
+              <Settings className="h-4 w-4" />
+              Study Modes
+            </Button>
           </nav>
         )}
 

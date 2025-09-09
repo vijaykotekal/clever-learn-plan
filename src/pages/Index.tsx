@@ -5,6 +5,7 @@ import { AuthDialog } from "@/components/auth/AuthDialog";
 import { Dashboard } from "@/components/dashboard/Dashboard";
 import { SubjectManager } from "@/components/subjects/SubjectManager";
 import { ScheduleView } from "@/components/schedule/ScheduleView";
+import { StudyModes } from "./StudyModes";
 
 const Index = () => {
   const [currentView, setCurrentView] = useState("hero");
@@ -50,6 +51,8 @@ const Index = () => {
         return <SubjectManager />;
       case "schedule":
         return <ScheduleView />;
+      case "study-modes":
+        return <StudyModes onBack={() => setCurrentView("dashboard")} />;
       default:
         return <HeroSection onGetStarted={handleLogin} />;
     }
