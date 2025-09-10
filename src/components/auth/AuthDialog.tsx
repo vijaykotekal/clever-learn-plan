@@ -211,10 +211,6 @@ export const AuthDialog = ({ open, onOpenChange, onAuthSuccess }: AuthDialogProp
           </TabsContent>
         </Tabs>
 
-        <div className="text-center text-sm text-muted-foreground">
-          <p>Demo mode - No actual authentication required</p>
-          <p className="text-xs mt-1">For full backend features, connect to Supabase</p>
-        </div>
       </DialogContent>
     </Dialog>
   );
