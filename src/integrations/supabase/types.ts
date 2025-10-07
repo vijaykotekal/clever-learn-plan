@@ -14,7 +14,134 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      completed_tasks: {
+        Row: {
+          completed_at: string | null
+          id: string
+          task_data: Json
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          id?: string
+          task_data: Json
+          user_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          id?: string
+          task_data?: Json
+          user_id?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          created_at: string | null
+          email: string
+          id: string
+          name: string
+        }
+        Insert: {
+          created_at?: string | null
+          email: string
+          id: string
+          name: string
+        }
+        Update: {
+          created_at?: string | null
+          email?: string
+          id?: string
+          name?: string
+        }
+        Relationships: []
+      }
+      study_plans: {
+        Row: {
+          created_at: string | null
+          id: string
+          plan_data: Json
+          plan_type: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          plan_data: Json
+          plan_type: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          plan_data?: Json
+          plan_type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      subjects: {
+        Row: {
+          created_at: string | null
+          id: string
+          name: string
+          study_time_preference: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          name: string
+          study_time_preference?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          name?: string
+          study_time_preference?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      topics: {
+        Row: {
+          completed_at: string | null
+          created_at: string | null
+          id: string
+          is_completed: boolean | null
+          name: string
+          subject_id: string
+          time_allocated: number
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string | null
+          id?: string
+          is_completed?: boolean | null
+          name: string
+          subject_id: string
+          time_allocated: number
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string | null
+          id?: string
+          is_completed?: boolean | null
+          name?: string
+          subject_id?: string
+          time_allocated?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "topics_subject_id_fkey"
+            columns: ["subject_id"]
+            isOneToOne: false
+            referencedRelation: "subjects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never

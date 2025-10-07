@@ -7,6 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Brain, Mail, Lock, User } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 interface AuthDialogProps {
   open: boolean;
@@ -24,18 +25,41 @@ export const AuthDialog = ({ open, onOpenChange, onAuthSuccess }: AuthDialogProp
     e.preventDefault();
     setIsLoading(true);
     
-    // Simulate authentication - In real app, this would connect to Supabase
-    setTimeout(() => {
-      const user = { name: "Demo User", email: loginData.email };
-      localStorage.setItem("studyPlannerUser", JSON.stringify(user));
-      onAuthSuccess(user);
-      onOpenChange(false);
-      setIsLoading(false);
-      toast({
-        title: "Welcome back!",
-        description: "You've successfully logged in to your study planner.",
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: loginData.email,
+        password: loginData.password,
       });
-    }, 1000);
+
+      if (error) throw error;
+
+      if (data.user) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', data.user.id)
+          .single();
+
+        const user = { 
+          name: profile?.name || "User", 
+          email: data.user.email || loginData.email 
+        };
+        onAuthSuccess(user);
+        onOpenChange(false);
+        toast({
+          title: "Welcome back!",
+          description: "You've successfully logged in to your study planner.",
+        });
+      }
+    } catch (error: any) {
+      toast({
+        title: "Login failed",
+        description: error.message || "Invalid credentials. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleSignup = async (e: React.FormEvent) => {
@@ -52,18 +76,38 @@ export const AuthDialog = ({ open, onOpenChange, onAuthSuccess }: AuthDialogProp
 
     setIsLoading(true);
     
-    // Simulate registration - In real app, this would connect to Supabase
-    setTimeout(() => {
-      const user = { name: signupData.name, email: signupData.email };
-      localStorage.setItem("studyPlannerUser", JSON.stringify(user));
-      onAuthSuccess(user);
-      onOpenChange(false);
-      setIsLoading(false);
-      toast({
-        title: "Account created!",
-        description: "Welcome to your AI-powered study planner.",
+    try {
+      const { data, error } = await supabase.auth.signUp({
+        email: signupData.email,
+        password: signupData.password,
+        options: {
+          emailRedirectTo: `${window.location.origin}/`,
+          data: {
+            name: signupData.name,
+          }
+        }
       });
-    }, 1000);
+
+      if (error) throw error;
+
+      if (data.user) {
+        const user = { name: signupData.name, email: signupData.email };
+        onAuthSuccess(user);
+        onOpenChange(false);
+        toast({
+          title: "Account created!",
+          description: "Welcome to your AI-powered study planner.",
+        });
+      }
+    } catch (error: any) {
+      toast({
+        title: "Signup failed",
+        description: error.message || "Could not create account. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (

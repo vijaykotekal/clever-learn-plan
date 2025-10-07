@@ -7,31 +7,69 @@ import { SubjectManager } from "@/components/subjects/SubjectManager";
 import { ScheduleView } from "@/components/schedule/ScheduleView";
 import { StudyModes } from "./StudyModes";
 import { HistoryView } from "@/components/history/HistoryView";
+import { supabase } from "@/integrations/supabase/client";
+import type { Session } from "@supabase/supabase-js";
 
 const Index = () => {
   const [currentView, setCurrentView] = useState("hero");
   const [isAuthDialogOpen, setIsAuthDialogOpen] = useState(false);
   const [user, setUser] = useState<{ name: string; email: string } | null>(null);
+  const [session, setSession] = useState<Session | null>(null);
 
   // Check for existing user session
   useEffect(() => {
-    const savedUser = localStorage.getItem("studyPlannerUser");
-    if (savedUser) {
-      const userData = JSON.parse(savedUser);
-      setUser(userData);
-      setCurrentView("dashboard");
-    }
+    // Set up auth state listener
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        setSession(session);
+        if (session?.user) {
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', session.user.id)
+            .maybeSingle();
+          
+          setUser({
+            name: profile?.name || "User",
+            email: session.user.email || "",
+          });
+          setCurrentView("dashboard");
+        } else {
+          setUser(null);
+          setCurrentView("hero");
+        }
+      }
+    );
+
+    // Check for existing session
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      setSession(session);
+      if (session?.user) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', session.user.id)
+          .maybeSingle();
+        
+        setUser({
+          name: profile?.name || "User",
+          email: session.user.email || "",
+        });
+        setCurrentView("dashboard");
+      }
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
 
   const handleLogin = () => {
     setIsAuthDialogOpen(true);
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem("studyPlannerUser");
-    localStorage.removeItem("studyPlannerSubjects");
-    localStorage.removeItem("scheduleProgress");
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
     setUser(null);
+    setSession(null);
     setCurrentView("hero");
   };
 

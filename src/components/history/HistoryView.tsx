@@ -16,6 +16,8 @@ import {
   BarChart3
 } from "lucide-react";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
+import { useStudyPlans } from "@/hooks/useStudyPlans";
+import { useCompletedTasks } from "@/hooks/useCompletedTasks";
 
 interface CompletedTask {
   id: string;
@@ -38,8 +40,8 @@ interface StudyPlan {
 }
 
 export const HistoryView = () => {
-  const [completedTasks, setCompletedTasks] = useState<CompletedTask[]>([]);
-  const [studyPlans, setStudyPlans] = useState<StudyPlan[]>([]);
+  const { plans: studyPlans, loading: plansLoading } = useStudyPlans();
+  const { tasks: completedTasksData, loading: tasksLoading } = useCompletedTasks();
   const [stats, setStats] = useState({
     totalCompleted: 0,
     totalHours: 0,
@@ -47,25 +49,22 @@ export const HistoryView = () => {
     avgHoursPerDay: 0
   });
 
+  // Transform database tasks to local format
+  const completedTasks: CompletedTask[] = completedTasksData.map(task => ({
+    id: task.id,
+    topicTitle: task.task_data.topicTitle || '',
+    subjectName: task.task_data.subjectName || '',
+    difficulty: task.task_data.difficulty || 'medium',
+    estimatedHours: task.task_data.estimatedHours || 0,
+    completedAt: task.completed_at,
+    date: new Date(task.completed_at).toISOString().split('T')[0]
+  }));
+
   useEffect(() => {
-    loadHistoryData();
-  }, []);
-
-  const loadHistoryData = () => {
-    // Load completed tasks
-    const savedTasks = localStorage.getItem("completedTasks");
-    if (savedTasks) {
-      const tasks = JSON.parse(savedTasks);
-      setCompletedTasks(tasks);
-      calculateStats(tasks);
+    if (completedTasks.length > 0) {
+      calculateStats(completedTasks);
     }
-
-    // Load study plans history
-    const savedPlans = localStorage.getItem("studyPlansHistory");
-    if (savedPlans) {
-      setStudyPlans(JSON.parse(savedPlans));
-    }
-  };
+  }, [completedTasksData]);
 
   const calculateStats = (tasks: CompletedTask[]) => {
     const totalCompleted = tasks.length;
@@ -374,7 +373,7 @@ export const HistoryView = () => {
                   <CardTitle className="flex items-center justify-between">
                     <span>Study Plan #{studyPlans.length - index}</span>
                     <Badge variant="outline">
-                      {new Date(plan.createdAt).toLocaleDateString('en-US', {
+                      {new Date(plan.created_at).toLocaleDateString('en-US', {
                         month: 'short',
                         day: 'numeric',
                         year: 'numeric'
@@ -382,7 +381,7 @@ export const HistoryView = () => {
                     </Badge>
                   </CardTitle>
                   <CardDescription>
-                    Generated {new Date(plan.createdAt).toLocaleDateString()}
+                    Generated {new Date(plan.created_at).toLocaleDateString()}
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -391,28 +390,28 @@ export const HistoryView = () => {
                       <BookOpen className="h-4 w-4 text-muted-foreground" />
                       <div>
                         <p className="text-sm text-muted-foreground">Subjects</p>
-                        <p className="font-semibold">{plan.subjects.length}</p>
+                        <p className="font-semibold">{Array.isArray(plan.plan_data?.subjects) ? plan.plan_data.subjects.length : 0}</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
                       <Target className="h-4 w-4 text-muted-foreground" />
                       <div>
                         <p className="text-sm text-muted-foreground">Total Tasks</p>
-                        <p className="font-semibold">{plan.totalTasks}</p>
+                        <p className="font-semibold">{plan.plan_data?.totalTasks || 0}</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
                       <Clock className="h-4 w-4 text-muted-foreground" />
                       <div>
                         <p className="text-sm text-muted-foreground">Total Hours</p>
-                        <p className="font-semibold">{plan.totalHours.toFixed(1)}</p>
+                        <p className="font-semibold">{(plan.plan_data?.totalHours || 0).toFixed(1)}</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
                       <Calendar className="h-4 w-4 text-muted-foreground" />
                       <div>
                         <p className="text-sm text-muted-foreground">Days to Exam</p>
-                        <p className="font-semibold">{plan.daysUntilExams}</p>
+                        <p className="font-semibold">{plan.plan_data?.daysUntilExams || 0}</p>
                       </div>
                     </div>
                   </div>

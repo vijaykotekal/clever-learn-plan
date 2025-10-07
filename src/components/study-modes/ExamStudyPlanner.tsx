@@ -8,6 +8,8 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Calendar, Clock, ArrowLeft, BookOpen, Target, Settings, Play } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useSubjects } from "@/hooks/useSubjects";
+import { useStudyPlans } from "@/hooks/useStudyPlans";
 
 interface ExamStudyPlannerProps {
   onBack: () => void;
@@ -49,7 +51,8 @@ interface TimetableEntry {
 }
 
 export const ExamStudyPlanner = ({ onBack }: ExamStudyPlannerProps) => {
-  const [subjects, setSubjects] = useState<Subject[]>([]);
+  const { subjects: dbSubjects, loading } = useSubjects();
+  const { savePlan } = useStudyPlans();
   const [globalSettings, setGlobalSettings] = useState<GlobalSettings>({
     dailyStudyHours: 8,
     examWeekStart: "",
@@ -60,16 +63,24 @@ export const ExamStudyPlanner = ({ onBack }: ExamStudyPlannerProps) => {
   const [hasGeneratedTimetable, setHasGeneratedTimetable] = useState(false);
   const { toast } = useToast();
 
-  useEffect(() => {
-    const savedSubjects = localStorage.getItem("studyPlannerSubjects");
-    if (savedSubjects) {
-      try {
-        setSubjects(JSON.parse(savedSubjects));
-      } catch (error) {
-        console.error("Error parsing saved subjects:", error);
-      }
-    }
+  // Transform database subjects to local format
+  const subjects: Subject[] = dbSubjects.map(s => ({
+    id: s.id,
+    name: s.name,
+    examDate: s.created_at,
+    dailyHours: 2,
+    progress: 0,
+    topics: (s.topics || []).map(t => ({
+      id: t.id,
+      title: t.name,
+      estimatedHours: t.time_allocated / 60,
+      difficulty: "medium" as const,
+      completed: t.is_completed,
+      progress: t.is_completed ? 100 : 0
+    }))
+  }));
 
+  useEffect(() => {
     const savedSettings = localStorage.getItem("examStudySettings");
     if (savedSettings) {
       try {
@@ -102,24 +113,12 @@ export const ExamStudyPlanner = ({ onBack }: ExamStudyPlannerProps) => {
       return;
     }
 
-    // Apply global time settings to all subjects and topics
-    const updatedSubjects = subjects.map(subject => ({
-      ...subject,
-      dailyHours: globalSettings.dailyStudyHours,
-      topics: subject.topics.map(topic => ({
-        ...topic,
-        estimatedHours: globalSettings.dailyStudyHours / subject.topics.length
-      }))
-    }));
-
-    setSubjects(updatedSubjects);
-    localStorage.setItem("studyPlannerSubjects", JSON.stringify(updatedSubjects));
     localStorage.setItem("examStudySettings", JSON.stringify(globalSettings));
     setIsSettingsOpen(false);
 
     toast({
       title: "Settings saved!",
-      description: "Global study time has been applied to all subjects and topics.",
+      description: "Global study time settings have been saved.",
     });
   };
 

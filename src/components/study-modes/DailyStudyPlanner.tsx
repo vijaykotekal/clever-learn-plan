@@ -10,7 +10,8 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Calendar, Clock, Plus, ArrowLeft, BookOpen, Target, Edit, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { SubjectManager } from "@/components/subjects/SubjectManager";
+import { useSubjects } from "@/hooks/useSubjects";
+import { useStudyPlans } from "@/hooks/useStudyPlans";
 
 interface DailyStudyPlannerProps {
   onBack: () => void;
@@ -35,51 +36,39 @@ interface Subject {
 }
 
 export const DailyStudyPlanner = ({ onBack }: DailyStudyPlannerProps) => {
-  const [subjects, setSubjects] = useState<Subject[]>([]);
+  const { subjects: dbSubjects, loading, addTopic: dbAddTopic } = useSubjects();
+  const { savePlan } = useStudyPlans();
   const [selectedSubject, setSelectedSubject] = useState<Subject | null>(null);
   const [isAddingTopic, setIsAddingTopic] = useState(false);
   const [newTopicData, setNewTopicData] = useState({ title: "", difficulty: "medium" as const });
   const { toast } = useToast();
 
-  useEffect(() => {
-    const savedSubjects = localStorage.getItem("studyPlannerSubjects");
-    if (savedSubjects) {
-      try {
-        setSubjects(JSON.parse(savedSubjects));
-      } catch (error) {
-        console.error("Error parsing saved subjects:", error);
-      }
-    }
-  }, []);
+  // Transform database subjects to local format
+  const subjects: Subject[] = dbSubjects.map(s => ({
+    id: s.id,
+    name: s.name,
+    examDate: s.created_at, // You may want to add exam_date to subjects table
+    dailyHours: 2,
+    progress: 0,
+    topics: (s.topics || []).map(t => ({
+      id: t.id,
+      title: t.name,
+      estimatedHours: t.time_allocated / 60,
+      difficulty: "medium" as const,
+      completed: t.is_completed,
+      progress: t.is_completed ? 100 : 0
+    }))
+  }));
 
-  const addTopicToSubject = (subjectId: string) => {
+  const addTopicToSubject = async (subjectId: string) => {
     const subject = subjects.find(s => s.id === subjectId);
     if (!subject || !newTopicData.title.trim()) return;
 
-    const newTopic: Topic = {
-      id: Date.now().toString(),
-      title: newTopicData.title,
-      estimatedHours: subject.dailyHours / (subject.topics.length + 1), // Distribute time equally
-      difficulty: newTopicData.difficulty,
-      completed: false,
-      progress: 0,
-    };
-
-    const updatedSubjects = subjects.map(s => 
-      s.id === subjectId 
-        ? { ...s, topics: [...s.topics, newTopic] }
-        : s
-    );
-
-    setSubjects(updatedSubjects);
-    localStorage.setItem("studyPlannerSubjects", JSON.stringify(updatedSubjects));
+    const estimatedHours = subject.dailyHours / (subject.topics.length + 1);
+    await dbAddTopic(subjectId, newTopicData.title, Math.floor(estimatedHours * 60));
+    
     setNewTopicData({ title: "", difficulty: "medium" });
     setIsAddingTopic(false);
-    
-    toast({
-      title: "Topic added!",
-      description: `${newTopicData.title} has been added to ${subject.name}.`,
-    });
   };
 
   const generateDailyTimetable = (subject: Subject) => {
@@ -129,9 +118,12 @@ export const DailyStudyPlanner = ({ onBack }: DailyStudyPlannerProps) => {
             <BookOpen className="h-12 w-12 text-muted-foreground mb-4" />
             <h3 className="font-semibold mb-2">No subjects yet</h3>
             <p className="text-sm text-muted-foreground text-center mb-4">
-              Add your first subject to start planning your daily studies
+              Go back to the dashboard to add your first subject to start planning your daily studies
             </p>
-            <SubjectManager />
+            <Button onClick={onBack} variant="outline">
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Back to Dashboard
+            </Button>
           </CardContent>
         </Card>
       ) : (
