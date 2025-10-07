@@ -49,6 +49,9 @@ export const ScheduleView = () => {
   const markTaskCompleted = (taskId: string) => {
     if (!schedulePlan) return;
     
+    const completedTask = schedulePlan.dailyTasks.find((task: any) => task.id === taskId);
+    if (!completedTask) return;
+
     const updatedTasks = schedulePlan.dailyTasks.map((task: any) => 
       task.id === taskId 
         ? { ...task, completed: true, actualHours: task.estimatedHours }
@@ -62,6 +65,17 @@ export const ScheduleView = () => {
     
     // Save to localStorage
     localStorage.setItem("scheduleProgress", JSON.stringify(updatedTasks));
+
+    // Save to completed tasks history
+    const savedTasks = localStorage.getItem("completedTasks");
+    const completedTasks = savedTasks ? JSON.parse(savedTasks) : [];
+    completedTasks.push({
+      ...completedTask,
+      completed: true,
+      completedAt: new Date().toISOString(),
+      actualHours: completedTask.estimatedHours
+    });
+    localStorage.setItem("completedTasks", JSON.stringify(completedTasks));
     
     toast({
       title: "Task completed!",

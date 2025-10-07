@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { BookOpen, Brain, Calendar, User, Settings } from "lucide-react";
+import { BookOpen, Brain, Calendar, User, Settings, History } from "lucide-react";
 
 interface HeaderProps {
   currentView: string;
@@ -66,6 +66,15 @@ export const Header = ({
             >
               <Settings className="h-4 w-4" />
               Study Modes
+            </Button>
+            <Button
+              variant={currentView === "history" ? "default" : "ghost"}
+              size="sm"
+              onClick={() => onViewChange("history")}
+              className="flex items-center gap-2"
+            >
+              <History className="h-4 w-4" />
+              History
             </Button>
           </nav>
         )}

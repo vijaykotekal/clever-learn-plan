@@ -50,6 +50,27 @@ export const Dashboard = ({ onNavigate }: DashboardProps) => {
       // Generate AI schedule
       const plan = scheduler.generateSchedule(subjectsData);
       setSchedulePlan(plan);
+
+      // Save plan to history
+      const savedPlans = localStorage.getItem("studyPlansHistory");
+      const plansHistory = savedPlans ? JSON.parse(savedPlans) : [];
+      const newPlan = {
+        id: `plan-${Date.now()}`,
+        createdAt: new Date().toISOString(),
+        totalHours: plan.totalHours,
+        daysUntilExams: plan.daysUntilExams,
+        averageHoursPerDay: plan.averageHoursPerDay,
+        totalTasks: plan.dailyTasks.length,
+        subjects: subjectsData.map((s: any) => ({ name: s.name, examDate: s.examDate }))
+      };
+      
+      // Only save if this is a new unique plan
+      const lastPlan = plansHistory[plansHistory.length - 1];
+      if (!lastPlan || lastPlan.totalTasks !== newPlan.totalTasks || 
+          lastPlan.totalHours !== newPlan.totalHours) {
+        plansHistory.push(newPlan);
+        localStorage.setItem("studyPlansHistory", JSON.stringify(plansHistory));
+      }
       
       // Get today's tasks
       const today = new Date().toISOString().split('T')[0];
@@ -59,11 +80,27 @@ export const Dashboard = ({ onNavigate }: DashboardProps) => {
   };
 
   const completeTask = (taskId: string) => {
+    const completedTask = todaysTasks.find(task => task.id === taskId);
+    if (!completedTask) return;
+
+    // Update today's tasks
     setTodaysTasks(todaysTasks.map(task => 
       task.id === taskId 
         ? { ...task, completed: true, actualHours: task.estimatedHours }
         : task
     ));
+
+    // Save to completed tasks history
+    const savedTasks = localStorage.getItem("completedTasks");
+    const completedTasks = savedTasks ? JSON.parse(savedTasks) : [];
+    completedTasks.push({
+      ...completedTask,
+      completed: true,
+      completedAt: new Date().toISOString(),
+      actualHours: completedTask.estimatedHours
+    });
+    localStorage.setItem("completedTasks", JSON.stringify(completedTasks));
+
     toast({
       title: "Task completed!",
       description: "Great progress on your study goals.",
