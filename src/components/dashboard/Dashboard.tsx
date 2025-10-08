@@ -19,6 +19,8 @@ import {
   RotateCcw
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useSubjects } from "@/hooks/useSubjects";
+import { useCompletedTasks } from "@/hooks/useCompletedTasks";
 import { AIScheduler } from "@/utils/aiScheduler";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 
@@ -27,7 +29,8 @@ interface DashboardProps {
 }
 
 export const Dashboard = ({ onNavigate }: DashboardProps) => {
-  const [subjects, setSubjects] = useState<any[]>([]);
+  const { subjects: dbSubjects, loading } = useSubjects();
+  const { addCompletedTask } = useCompletedTasks();
   const [schedulePlan, setSchedulePlan] = useState<any>(null);
   const [todaysTasks, setTodaysTasks] = useState<any[]>([]);
   const [pomodoroActive, setPomodoroActive] = useState(false);
@@ -37,49 +40,45 @@ export const Dashboard = ({ onNavigate }: DashboardProps) => {
 
   const scheduler = new AIScheduler();
 
+  // Transform database subjects to match the expected format
+  const subjects = dbSubjects.map(s => ({
+    id: s.id,
+    name: s.name,
+    examDate: s.created_at,
+    dailyHours: 2, // Default value
+    progress: 0,
+    topics: (s.topics || []).map(t => ({
+      id: t.id,
+      title: t.name,
+      estimatedHours: t.time_allocated / 60,
+      difficulty: "medium" as const,
+      completed: t.is_completed,
+      progress: t.is_completed ? 100 : 0,
+      subjectId: s.id,
+      subjectName: s.name
+    }))
+  }));
+
   useEffect(() => {
-    loadDashboardData();
-  }, []);
+    if (subjects.length > 0) {
+      loadDashboardData();
+    }
+  }, [subjects]);
 
   const loadDashboardData = () => {
-    const savedSubjects = localStorage.getItem("studyPlannerSubjects");
-    if (savedSubjects) {
-      const subjectsData = JSON.parse(savedSubjects);
-      setSubjects(subjectsData);
-      
-      // Generate AI schedule
-      const plan = scheduler.generateSchedule(subjectsData);
-      setSchedulePlan(plan);
-
-      // Save plan to history
-      const savedPlans = localStorage.getItem("studyPlansHistory");
-      const plansHistory = savedPlans ? JSON.parse(savedPlans) : [];
-      const newPlan = {
-        id: `plan-${Date.now()}`,
-        createdAt: new Date().toISOString(),
-        totalHours: plan.totalHours,
-        daysUntilExams: plan.daysUntilExams,
-        averageHoursPerDay: plan.averageHoursPerDay,
-        totalTasks: plan.dailyTasks.length,
-        subjects: subjectsData.map((s: any) => ({ name: s.name, examDate: s.examDate }))
-      };
-      
-      // Only save if this is a new unique plan
-      const lastPlan = plansHistory[plansHistory.length - 1];
-      if (!lastPlan || lastPlan.totalTasks !== newPlan.totalTasks || 
-          lastPlan.totalHours !== newPlan.totalHours) {
-        plansHistory.push(newPlan);
-        localStorage.setItem("studyPlansHistory", JSON.stringify(plansHistory));
-      }
-      
-      // Get today's tasks
-      const today = new Date().toISOString().split('T')[0];
-      const todayTasks = plan.dailyTasks.filter((task: any) => task.date === today);
-      setTodaysTasks(todayTasks);
-    }
+    if (subjects.length === 0) return;
+    
+    // Generate AI schedule
+    const plan = scheduler.generateSchedule(subjects);
+    setSchedulePlan(plan);
+    
+    // Get today's tasks
+    const today = new Date().toISOString().split('T')[0];
+    const todayTasks = plan.dailyTasks.filter((task: any) => task.date === today);
+    setTodaysTasks(todayTasks);
   };
 
-  const completeTask = (taskId: string) => {
+  const completeTask = async (taskId: string) => {
     const completedTask = todaysTasks.find(task => task.id === taskId);
     if (!completedTask) return;
 
@@ -90,16 +89,13 @@ export const Dashboard = ({ onNavigate }: DashboardProps) => {
         : task
     ));
 
-    // Save to completed tasks history
-    const savedTasks = localStorage.getItem("completedTasks");
-    const completedTasks = savedTasks ? JSON.parse(savedTasks) : [];
-    completedTasks.push({
+    // Save to database
+    await addCompletedTask({
       ...completedTask,
       completed: true,
       completedAt: new Date().toISOString(),
       actualHours: completedTask.estimatedHours
     });
-    localStorage.setItem("completedTasks", JSON.stringify(completedTasks));
 
     toast({
       title: "Task completed!",
