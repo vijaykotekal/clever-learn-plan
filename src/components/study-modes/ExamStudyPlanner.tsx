@@ -177,8 +177,8 @@ export const ExamStudyPlanner = ({ onBack }: ExamStudyPlannerProps) => {
     localStorage.setItem("examTimetable", JSON.stringify(newTimetable));
 
     toast({
-      title: "Timetable generated!",
-      description: `Created a ${totalDays}-day study plan for your exam week.`,
+      title: "Schedule generated!",
+      description: "Your AI-powered study plan is ready.",
     });
   };
 
@@ -194,14 +194,12 @@ export const ExamStudyPlanner = ({ onBack }: ExamStudyPlannerProps) => {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-4">
-        <Button variant="outline" onClick={onBack} className="flex items-center gap-2">
-          <ArrowLeft className="h-4 w-4" />
-          Back to Study Modes
-        </Button>
-        <div className="flex-1">
-          <h2 className="text-3xl font-bold">Exam-wise Study Planning</h2>
-          <p className="text-muted-foreground">Global time allocation for comprehensive exam preparation</p>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <Button variant="ghost" onClick={onBack} className="flex items-center gap-2">
+            <ArrowLeft className="h-4 w-4" />
+            Back to Study Modes
+          </Button>
         </div>
         <Dialog open={isSettingsOpen} onOpenChange={setIsSettingsOpen}>
           <DialogTrigger asChild>
@@ -210,111 +208,116 @@ export const ExamStudyPlanner = ({ onBack }: ExamStudyPlannerProps) => {
               Global Settings
             </Button>
           </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Global Study Settings</DialogTitle>
-              <DialogDescription>
-                Set global parameters that will apply to all subjects and topics
-              </DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4">
-              <div>
-                <Label htmlFor="dailyHours">Daily Study Hours</Label>
-                <Input
-                  id="dailyHours"
-                  type="number"
-                  min="1"
-                  max="16"
-                  value={globalSettings.dailyStudyHours}
-                  onChange={(e) => setGlobalSettings(prev => ({ 
-                    ...prev, 
-                    dailyStudyHours: Number(e.target.value) 
-                  }))}
-                  placeholder="8"
-                />
-                <p className="text-sm text-muted-foreground">
-                  This time will be distributed equally across all subjects
-                </p>
-              </div>
-              <div>
-                <Label htmlFor="examStart">Exam Week Start Date</Label>
-                <Input
-                  id="examStart"
-                  type="date"
-                  value={globalSettings.examWeekStart}
-                  onChange={(e) => setGlobalSettings(prev => ({ 
-                    ...prev, 
-                    examWeekStart: e.target.value 
-                  }))}
-                />
-              </div>
-              <div>
-                <Label htmlFor="examEnd">Exam Week End Date</Label>
-                <Input
-                  id="examEnd"
-                  type="date"
-                  value={globalSettings.examWeekEnd}
-                  onChange={(e) => setGlobalSettings(prev => ({ 
-                    ...prev, 
-                    examWeekEnd: e.target.value 
-                  }))}
-                />
-              </div>
-              <div className="flex gap-2">
-                <Button onClick={saveGlobalSettings} className="flex-1">
-                  Save Settings
-                </Button>
-                <Button variant="outline" onClick={() => setIsSettingsOpen(false)}>
-                  Cancel
-                </Button>
-              </div>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Global Study Settings</DialogTitle>
+            <DialogDescription>
+              Set global parameters that will apply to all subjects and topics
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="dailyHours">Daily Study Hours</Label>
+              <Input
+                id="dailyHours"
+                type="number"
+                min="1"
+                max="16"
+                value={globalSettings.dailyStudyHours}
+                onChange={(e) => setGlobalSettings(prev => ({ 
+                  ...prev, 
+                  dailyStudyHours: Number(e.target.value) 
+                }))}
+                placeholder="8"
+              />
+              <p className="text-sm text-muted-foreground mt-1">
+                This time will be distributed equally across all subjects
+              </p>
             </div>
-          </DialogContent>
-        </Dialog>
+            <div>
+              <Label htmlFor="examStart">Exam Week Start Date</Label>
+              <Input
+                id="examStart"
+                type="date"
+                value={globalSettings.examWeekStart}
+                onChange={(e) => setGlobalSettings(prev => ({ 
+                  ...prev, 
+                  examWeekStart: e.target.value 
+                }))}
+              />
+            </div>
+            <div>
+              <Label htmlFor="examEnd">Exam Week End Date</Label>
+              <Input
+                id="examEnd"
+                type="date"
+                value={globalSettings.examWeekEnd}
+                onChange={(e) => setGlobalSettings(prev => ({ 
+                  ...prev, 
+                  examWeekEnd: e.target.value 
+                }))}
+              />
+            </div>
+            <div className="flex gap-2">
+              <Button onClick={saveGlobalSettings} className="flex-1">
+                Save Settings
+              </Button>
+              <Button variant="outline" onClick={() => setIsSettingsOpen(false)}>
+                Cancel
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+      </div>
+
+      <div>
+        <h2 className="text-3xl font-bold">Exam-wise Study Planning</h2>
+        <p className="text-muted-foreground">Global time allocation for comprehensive exam preparation</p>
       </div>
 
       {/* Overview Stats */}
       <div className="grid md:grid-cols-4 gap-4">
         <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2">
+          <CardContent className="p-6">
+            <div className="flex items-center gap-3">
               <BookOpen className="h-5 w-5 text-primary" />
               <div>
                 <p className="text-sm text-muted-foreground">Subjects</p>
-                <p className="text-lg font-semibold">{subjects.length}</p>
+                <p className="text-2xl font-bold">{subjects.length}</p>
               </div>
             </div>
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2">
+          <CardContent className="p-6">
+            <div className="flex items-center gap-3">
               <Target className="h-5 w-5 text-primary" />
               <div>
                 <p className="text-sm text-muted-foreground">Total Topics</p>
-                <p className="text-lg font-semibold">{getTotalTopics()}</p>
+                <p className="text-2xl font-bold">{getTotalTopics()}</p>
               </div>
             </div>
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2">
+          <CardContent className="p-6">
+            <div className="flex items-center gap-3">
               <Clock className="h-5 w-5 text-primary" />
               <div>
                 <p className="text-sm text-muted-foreground">Daily Hours</p>
-                <p className="text-lg font-semibold">{globalSettings.dailyStudyHours}h</p>
+                <p className="text-2xl font-bold">{globalSettings.dailyStudyHours}h</p>
               </div>
             </div>
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2">
+          <CardContent className="p-6">
+            <div className="flex items-center gap-3">
               <Calendar className="h-5 w-5 text-primary" />
               <div>
                 <p className="text-sm text-muted-foreground">Completed</p>
-                <p className="text-lg font-semibold">{getCompletedTopics()}/{getTotalTopics()}</p>
+                <p className="text-2xl font-bold">{getCompletedTopics()}/{getTotalTopics()}</p>
               </div>
             </div>
           </CardContent>
@@ -329,8 +332,8 @@ export const ExamStudyPlanner = ({ onBack }: ExamStudyPlannerProps) => {
         </CardHeader>
         <CardContent>
           {subjects.length === 0 ? (
-            <div className="text-center py-8">
-              <BookOpen className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+            <div className="text-center py-12">
+              <BookOpen className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
               <p className="text-muted-foreground">No subjects added yet. Please add subjects first.</p>
             </div>
           ) : (

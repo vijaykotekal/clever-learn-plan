@@ -8,7 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { Calendar, Clock, Plus, ArrowLeft, BookOpen, Target, Edit, Trash2 } from "lucide-react";
+import { Calendar, Clock, Plus, ArrowLeft, BookOpen, Target, Edit, Trash2, BarChart3 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useSubjects } from "@/hooks/useSubjects";
 import { useStudyPlans } from "@/hooks/useStudyPlans";
@@ -102,184 +102,262 @@ export const DailyStudyPlanner = ({ onBack }: DailyStudyPlannerProps) => {
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-4">
-        <Button variant="outline" onClick={onBack} className="flex items-center gap-2">
+        <Button variant="ghost" onClick={onBack} className="flex items-center gap-2">
           <ArrowLeft className="h-4 w-4" />
           Back to Study Modes
         </Button>
-        <div>
-          <h2 className="text-3xl font-bold">Daily-wise Study Planning</h2>
-          <p className="text-muted-foreground">Manage subjects with individual time allocations</p>
-        </div>
+      </div>
+
+      <div>
+        <h2 className="text-3xl font-bold">Daily-wise Study Planning</h2>
+        <p className="text-muted-foreground">Manage subjects with individual time allocations</p>
       </div>
 
       {subjects.length === 0 ? (
-        <Card className="gradient-card">
-          <CardContent className="flex flex-col items-center justify-center py-12">
-            <BookOpen className="h-12 w-12 text-muted-foreground mb-4" />
-            <h3 className="font-semibold mb-2">No subjects yet</h3>
-            <p className="text-sm text-muted-foreground text-center mb-4">
-              Go back to the dashboard to add your first subject to start planning your daily studies
-            </p>
-            <Button onClick={onBack} variant="outline">
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Back to Dashboard
-            </Button>
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="grid lg:grid-cols-3 gap-6">
-          {/* Subjects List */}
-          <div className="lg:col-span-1 space-y-4">
-            <h3 className="text-lg font-semibold">Your Subjects</h3>
-            {subjects.map((subject) => (
-              <Card 
-                key={subject.id} 
-                className={`cursor-pointer transition-smooth hover:shadow-medium ${
-                  selectedSubject?.id === subject.id ? "ring-2 ring-primary shadow-medium" : ""
-                }`}
-                onClick={() => setSelectedSubject(subject)}
-              >
-                <CardContent className="p-4">
-                  <div className="space-y-3">
-                    <div>
-                      <h4 className="font-semibold">{subject.name}</h4>
-                      <p className="text-sm text-muted-foreground">
-                        Exam: {new Date(subject.examDate).toLocaleDateString()}
-                      </p>
-                      <p className="text-sm text-muted-foreground">
-                        Daily Hours: {subject.dailyHours}h
-                      </p>
-                    </div>
-                    <div>
-                      <div className="flex items-center justify-between text-sm mb-1">
-                        <span>Progress</span>
-                        <span>{Math.round(subject.progress)}%</span>
-                      </div>
-                      <Progress value={subject.progress} className="h-2" />
-                    </div>
-                    <div className="flex items-center justify-between text-sm">
-                      <span>Topics: {subject.topics.length}</span>
-                      <Badge variant="secondary">{subject.topics.filter(t => t.completed).length} completed</Badge>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+        <>
+          <Card className="py-12">
+            <CardContent className="flex flex-col items-center justify-center">
+              <BookOpen className="h-16 w-16 text-muted-foreground mb-4" />
+              <h3 className="text-lg font-semibold mb-2">No subjects yet</h3>
+              <p className="text-sm text-muted-foreground text-center">
+                Add your first subject to start planning your daily studies
+              </p>
+            </CardContent>
+          </Card>
 
-          {/* Subject Details */}
-          {selectedSubject && (
-            <div className="lg:col-span-2 space-y-4">
+          <Card>
+            <CardHeader>
               <div className="flex items-center justify-between">
-                <h3 className="text-lg font-semibold">{selectedSubject.name} - Topics & Timetable</h3>
-                <Dialog open={isAddingTopic} onOpenChange={setIsAddingTopic}>
-                  <DialogTrigger asChild>
-                    <Button className="flex items-center gap-2">
-                      <Plus className="h-4 w-4" />
-                      Add Topic
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent>
-                    <DialogHeader>
-                      <DialogTitle>Add New Topic</DialogTitle>
-                      <DialogDescription>
-                        Add a new topic to {selectedSubject.name}. Time will be automatically distributed.
-                      </DialogDescription>
-                    </DialogHeader>
-                    <div className="space-y-4">
-                      <div>
-                        <Label htmlFor="topicTitle">Topic Title</Label>
-                        <Input
-                          id="topicTitle"
-                          value={newTopicData.title}
-                          onChange={(e) => setNewTopicData(prev => ({ ...prev, title: e.target.value }))}
-                          placeholder="Enter topic title"
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="difficulty">Difficulty Level</Label>
-                        <Select value={newTopicData.difficulty} onValueChange={(value: any) => setNewTopicData(prev => ({ ...prev, difficulty: value }))}>
-                          <SelectTrigger>
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="easy">Easy</SelectItem>
-                            <SelectItem value="medium">Medium</SelectItem>
-                            <SelectItem value="hard">Hard</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div className="flex gap-2">
-                        <Button onClick={() => addTopicToSubject(selectedSubject.id)} className="flex-1">
-                          Add Topic
-                        </Button>
-                        <Button variant="outline" onClick={() => setIsAddingTopic(false)}>
-                          Cancel
-                        </Button>
-                      </div>
-                    </div>
-                  </DialogContent>
-                </Dialog>
+                <div>
+                  <CardTitle>Subject Management</CardTitle>
+                  <CardDescription>Organize your subjects and topics for optimal learning</CardDescription>
+                </div>
+                <div className="flex gap-2">
+                  <Button variant="outline" disabled>
+                    <BarChart3 className="h-4 w-4 mr-2" />
+                    Progress Chart
+                  </Button>
+                  <Button onClick={onBack}>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add Subject
+                  </Button>
+                </div>
               </div>
-
-              {/* Topics List */}
-              <div className="space-y-3">
-                <h4 className="font-medium">Topics ({selectedSubject.topics.length})</h4>
-                {selectedSubject.topics.map((topic) => (
-                  <Card key={topic.id}>
-                    <CardContent className="p-4">
-                      <div className="flex items-center justify-between">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2">
-                            <h5 className="font-medium">{topic.title}</h5>
-                            <Badge variant={topic.difficulty === "easy" ? "secondary" : topic.difficulty === "medium" ? "default" : "destructive"}>
-                              {topic.difficulty}
-                            </Badge>
+            </CardHeader>
+            <CardContent>
+              <div className="grid lg:grid-cols-2 gap-6">
+                <Card>
+                  <CardContent className="flex flex-col items-center justify-center py-12">
+                    <BookOpen className="h-12 w-12 text-muted-foreground mb-4" />
+                    <h4 className="font-semibold mb-2">No subjects yet</h4>
+                    <p className="text-sm text-muted-foreground text-center">
+                      Add your first subject to start planning your studies
+                    </p>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardContent className="flex flex-col items-center justify-center py-12">
+                    <BookOpen className="h-12 w-12 text-muted-foreground mb-4" />
+                    <h4 className="font-semibold mb-2">Select a subject</h4>
+                    <p className="text-sm text-muted-foreground text-center">
+                      Choose a subject from the left to view and manage its topics
+                    </p>
+                  </CardContent>
+                </Card>
+              </div>
+            </CardContent>
+          </Card>
+        </>
+      ) : (
+        <>
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle>Subject Management</CardTitle>
+                  <CardDescription>Organize your subjects and topics for optimal learning</CardDescription>
+                </div>
+                <div className="flex gap-2">
+                  <Button variant="outline">
+                    <BarChart3 className="h-4 w-4 mr-2" />
+                    Progress Chart
+                  </Button>
+                  <Button onClick={onBack}>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add Subject
+                  </Button>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="grid lg:grid-cols-3 gap-6">
+                {/* Subjects List */}
+                <div className="space-y-4">
+                  <h3 className="font-semibold">Your Subjects</h3>
+                  {subjects.map((subject) => (
+                    <Card 
+                      key={subject.id} 
+                      className={`cursor-pointer transition-smooth hover:shadow-sm ${
+                        selectedSubject?.id === subject.id ? "ring-2 ring-primary" : ""
+                      }`}
+                      onClick={() => setSelectedSubject(subject)}
+                    >
+                      <CardContent className="p-4">
+                        <div className="space-y-3">
+                          <div>
+                            <h4 className="font-semibold">{subject.name}</h4>
+                            <p className="text-sm text-muted-foreground">
+                              Exam: {new Date(subject.examDate).toLocaleDateString()}
+                            </p>
+                            <p className="text-sm text-muted-foreground">
+                              Daily Hours: {subject.dailyHours}h
+                            </p>
                           </div>
-                          <p className="text-sm text-muted-foreground">
-                            Estimated: {topic.estimatedHours.toFixed(1)}h
-                          </p>
-                          <div className="mt-2">
+                          <div>
                             <div className="flex items-center justify-between text-sm mb-1">
                               <span>Progress</span>
-                              <span>{Math.round(topic.progress)}%</span>
+                              <span>{Math.round(subject.progress)}%</span>
                             </div>
-                            <Progress value={topic.progress} className="h-1" />
+                            <Progress value={subject.progress} className="h-2" />
                           </div>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-
-              {/* Daily Timetable */}
-              <div className="space-y-3">
-                <h4 className="font-medium">Generated Daily Timetable</h4>
-                <div className="space-y-2 max-h-96 overflow-y-auto">
-                  {generateDailyTimetable(selectedSubject).slice(0, 7).map((day, index) => (
-                    <Card key={index}>
-                      <CardContent className="p-4">
-                        <h5 className="font-medium mb-2">{day.date}</h5>
-                        <div className="space-y-2">
-                          {day.topics.map((topic) => (
-                            <div key={topic.id} className="flex items-center justify-between text-sm border rounded p-2">
-                              <span>{topic.title}</span>
-                              <div className="flex items-center gap-2">
-                                <Badge variant="outline">{topic.timeSlot}</Badge>
-                                <span>{topic.allocatedTime.toFixed(1)}h</span>
-                              </div>
-                            </div>
-                          ))}
+                          <div className="flex items-center justify-between text-sm">
+                            <span>Topics: {subject.topics.length}</span>
+                            <Badge variant="secondary">{subject.topics.filter(t => t.completed).length} completed</Badge>
+                          </div>
                         </div>
                       </CardContent>
                     </Card>
                   ))}
                 </div>
+
+                {/* Subject Details */}
+                {selectedSubject ? (
+                  <div className="lg:col-span-2 space-y-4">
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="font-semibold">{selectedSubject.name} - Topics & Timetable</h3>
+                      <Dialog open={isAddingTopic} onOpenChange={setIsAddingTopic}>
+                        <DialogTrigger asChild>
+                          <Button className="flex items-center gap-2">
+                            <Plus className="h-4 w-4" />
+                            Add Topic
+                          </Button>
+                        </DialogTrigger>
+                        <DialogContent>
+                          <DialogHeader>
+                            <DialogTitle>Add New Topic</DialogTitle>
+                            <DialogDescription>
+                              Add a new topic to {selectedSubject.name}. Time will be automatically distributed.
+                            </DialogDescription>
+                          </DialogHeader>
+                          <div className="space-y-4">
+                            <div>
+                              <Label htmlFor="topicTitle">Topic Title</Label>
+                              <Input
+                                id="topicTitle"
+                                value={newTopicData.title}
+                                onChange={(e) => setNewTopicData(prev => ({ ...prev, title: e.target.value }))}
+                                placeholder="Enter topic title"
+                              />
+                            </div>
+                            <div>
+                              <Label htmlFor="difficulty">Difficulty Level</Label>
+                              <Select value={newTopicData.difficulty} onValueChange={(value: any) => setNewTopicData(prev => ({ ...prev, difficulty: value }))}>
+                                <SelectTrigger>
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="easy">Easy</SelectItem>
+                                  <SelectItem value="medium">Medium</SelectItem>
+                                  <SelectItem value="hard">Hard</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+                            <div className="flex gap-2">
+                              <Button onClick={() => addTopicToSubject(selectedSubject.id)} className="flex-1">
+                                Add Topic
+                              </Button>
+                              <Button variant="outline" onClick={() => setIsAddingTopic(false)}>
+                                Cancel
+                              </Button>
+                            </div>
+                          </div>
+                        </DialogContent>
+                      </Dialog>
+                    </div>
+
+                    {/* Topics List */}
+                    <div className="space-y-3">
+                      <h4 className="font-medium">Topics ({selectedSubject.topics.length})</h4>
+                      {selectedSubject.topics.map((topic) => (
+                        <Card key={topic.id}>
+                          <CardContent className="p-4">
+                            <div className="flex items-center justify-between">
+                              <div className="flex-1">
+                                <div className="flex items-center gap-2">
+                                  <h5 className="font-medium">{topic.title}</h5>
+                                  <Badge variant={topic.difficulty === "easy" ? "secondary" : topic.difficulty === "medium" ? "default" : "destructive"}>
+                                    {topic.difficulty}
+                                  </Badge>
+                                </div>
+                                <p className="text-sm text-muted-foreground">
+                                  Estimated: {topic.estimatedHours.toFixed(1)}h
+                                </p>
+                                <div className="mt-2">
+                                  <div className="flex items-center justify-between text-sm mb-1">
+                                    <span>Progress</span>
+                                    <span>{Math.round(topic.progress)}%</span>
+                                  </div>
+                                  <Progress value={topic.progress} className="h-1" />
+                                </div>
+                              </div>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
+
+                    {/* Daily Timetable */}
+                    <div className="space-y-3">
+                      <h4 className="font-medium">Generated Daily Timetable</h4>
+                      <div className="space-y-2 max-h-96 overflow-y-auto">
+                        {generateDailyTimetable(selectedSubject).slice(0, 7).map((day, index) => (
+                          <Card key={index}>
+                            <CardContent className="p-4">
+                              <h5 className="font-medium mb-2">{day.date}</h5>
+                              <div className="space-y-2">
+                                {day.topics.map((topic) => (
+                                  <div key={topic.id} className="flex items-center justify-between text-sm border rounded p-2">
+                                    <span>{topic.title}</span>
+                                    <div className="flex items-center gap-2">
+                                      <Badge variant="outline">{topic.timeSlot}</Badge>
+                                      <span>{topic.allocatedTime.toFixed(1)}h</span>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </CardContent>
+                          </Card>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="lg:col-span-2">
+                    <Card>
+                      <CardContent className="flex flex-col items-center justify-center py-12">
+                        <BookOpen className="h-12 w-12 text-muted-foreground mb-4" />
+                        <h4 className="font-semibold mb-2">Select a subject</h4>
+                        <p className="text-sm text-muted-foreground text-center">
+                          Choose a subject from the left to view and manage its topics
+                        </p>
+                      </CardContent>
+                    </Card>
+                  </div>
+                )}
               </div>
-            </div>
-          )}
-        </div>
+            </CardContent>
+          </Card>
+        </>
       )}
     </div>
   );
