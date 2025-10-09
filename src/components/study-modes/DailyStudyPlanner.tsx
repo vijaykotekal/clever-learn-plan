@@ -36,11 +36,18 @@ interface Subject {
 }
 
 export const DailyStudyPlanner = ({ onBack }: DailyStudyPlannerProps) => {
-  const { subjects: dbSubjects, loading, addTopic: dbAddTopic } = useSubjects();
+  const { subjects: dbSubjects, loading, addTopic: dbAddTopic, addSubject } = useSubjects();
   const { savePlan } = useStudyPlans();
   const [selectedSubject, setSelectedSubject] = useState<Subject | null>(null);
   const [isAddingTopic, setIsAddingTopic] = useState(false);
+  const [isAddingSubject, setIsAddingSubject] = useState(false);
   const [newTopicData, setNewTopicData] = useState({ title: "", difficulty: "medium" as const });
+  const [newSubjectData, setNewSubjectData] = useState({
+    name: "",
+    examDate: "",
+    dailyHours: 2,
+    topics: [""]
+  });
   const { toast } = useToast();
 
   // Transform database subjects to local format
@@ -70,6 +77,67 @@ export const DailyStudyPlanner = ({ onBack }: DailyStudyPlannerProps) => {
     setNewTopicData({ title: "", difficulty: "medium" });
     setIsAddingTopic(false);
   };
+
+  const handleAddSubject = async () => {
+    if (!newSubjectData.name.trim() || !newSubjectData.examDate) {
+      toast({
+        title: "Missing information",
+        description: "Please fill in all required fields",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const validTopics = newSubjectData.topics.filter(t => t.trim());
+    if (validTopics.length === 0) {
+      toast({
+        title: "No topics",
+        description: "Please add at least one topic",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    await addSubject(
+      newSubjectData.name,
+      newSubjectData.examDate,
+      newSubjectData.dailyHours,
+      validTopics
+    );
+
+    setNewSubjectData({
+      name: "",
+      examDate: "",
+      dailyHours: 2,
+      topics: [""]
+    });
+    setIsAddingSubject(false);
+  };
+
+  const addTopicField = () => {
+    setNewSubjectData(prev => ({
+      ...prev,
+      topics: [...prev.topics, ""]
+    }));
+  };
+
+  const updateTopicField = (index: number, value: string) => {
+    setNewSubjectData(prev => ({
+      ...prev,
+      topics: prev.topics.map((t, i) => i === index ? value : t)
+    }));
+  };
+
+  const removeTopicField = (index: number) => {
+    setNewSubjectData(prev => ({
+      ...prev,
+      topics: prev.topics.filter((_, i) => i !== index)
+    }));
+  };
+
+  const hoursPerTopic = newSubjectData.topics.filter(t => t.trim()).length > 0
+    ? newSubjectData.dailyHours / newSubjectData.topics.filter(t => t.trim()).length
+    : 0;
 
   const generateDailyTimetable = (subject: Subject) => {
     const today = new Date();
@@ -137,10 +205,105 @@ export const DailyStudyPlanner = ({ onBack }: DailyStudyPlannerProps) => {
                     <BarChart3 className="h-4 w-4 mr-2" />
                     Progress Chart
                   </Button>
-                  <Button onClick={onBack}>
-                    <Plus className="h-4 w-4 mr-2" />
-                    Add Subject
-                  </Button>
+                  <Dialog open={isAddingSubject} onOpenChange={setIsAddingSubject}>
+                    <DialogTrigger asChild>
+                      <Button>
+                        <Plus className="h-4 w-4 mr-2" />
+                        Add Subject
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="max-w-lg">
+                      <DialogHeader>
+                        <DialogTitle>Add New Subject</DialogTitle>
+                        <DialogDescription>
+                          Create a new subject with topics and study plan details
+                        </DialogDescription>
+                      </DialogHeader>
+                      <div className="space-y-4">
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <Label htmlFor="subjectName">Subject Name</Label>
+                            <Input
+                              id="subjectName"
+                              value={newSubjectData.name}
+                              onChange={(e) => setNewSubjectData(prev => ({ ...prev, name: e.target.value }))}
+                              placeholder="e.g., Mathematics"
+                            />
+                          </div>
+                          <div>
+                            <Label htmlFor="examDate">Exam Date</Label>
+                            <Input
+                              id="examDate"
+                              type="date"
+                              value={newSubjectData.examDate}
+                              onChange={(e) => setNewSubjectData(prev => ({ ...prev, examDate: e.target.value }))}
+                            />
+                          </div>
+                        </div>
+                        <div>
+                          <Label htmlFor="dailyHours">Daily Study Hours</Label>
+                          <Input
+                            id="dailyHours"
+                            type="number"
+                            min="1"
+                            max="24"
+                            value={newSubjectData.dailyHours}
+                            onChange={(e) => setNewSubjectData(prev => ({ ...prev, dailyHours: parseInt(e.target.value) || 2 }))}
+                          />
+                          <p className="text-sm text-muted-foreground mt-1">
+                            Time will be distributed equally among all topics
+                          </p>
+                        </div>
+                        <div>
+                          <div className="flex items-center justify-between mb-2">
+                            <Label>Topics</Label>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={addTopicField}
+                              className="h-8"
+                            >
+                              <Plus className="h-4 w-4 mr-1" />
+                              Add Topic
+                            </Button>
+                          </div>
+                          <div className="space-y-2">
+                            {newSubjectData.topics.map((topic, index) => (
+                              <div key={index} className="flex gap-2">
+                                <Input
+                                  value={topic}
+                                  onChange={(e) => updateTopicField(index, e.target.value)}
+                                  placeholder={`Topic ${index + 1}`}
+                                />
+                                {newSubjectData.topics.length > 1 && (
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => removeTopicField(index)}
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                          <p className="text-sm text-muted-foreground mt-2">
+                            Each topic will get approximately {hoursPerTopic.toFixed(1)} hours per day
+                          </p>
+                        </div>
+                        <div className="flex gap-2 justify-end">
+                          <Button variant="outline" onClick={() => setIsAddingSubject(false)}>
+                            Cancel
+                          </Button>
+                          <Button onClick={handleAddSubject}>
+                            Add Subject
+                          </Button>
+                        </div>
+                      </div>
+                    </DialogContent>
+                  </Dialog>
                 </div>
               </div>
             </CardHeader>
@@ -182,10 +345,105 @@ export const DailyStudyPlanner = ({ onBack }: DailyStudyPlannerProps) => {
                     <BarChart3 className="h-4 w-4 mr-2" />
                     Progress Chart
                   </Button>
-                  <Button onClick={onBack}>
-                    <Plus className="h-4 w-4 mr-2" />
-                    Add Subject
-                  </Button>
+                  <Dialog open={isAddingSubject} onOpenChange={setIsAddingSubject}>
+                    <DialogTrigger asChild>
+                      <Button>
+                        <Plus className="h-4 w-4 mr-2" />
+                        Add Subject
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="max-w-lg">
+                      <DialogHeader>
+                        <DialogTitle>Add New Subject</DialogTitle>
+                        <DialogDescription>
+                          Create a new subject with topics and study plan details
+                        </DialogDescription>
+                      </DialogHeader>
+                      <div className="space-y-4">
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <Label htmlFor="subjectName">Subject Name</Label>
+                            <Input
+                              id="subjectName"
+                              value={newSubjectData.name}
+                              onChange={(e) => setNewSubjectData(prev => ({ ...prev, name: e.target.value }))}
+                              placeholder="e.g., Mathematics"
+                            />
+                          </div>
+                          <div>
+                            <Label htmlFor="examDate">Exam Date</Label>
+                            <Input
+                              id="examDate"
+                              type="date"
+                              value={newSubjectData.examDate}
+                              onChange={(e) => setNewSubjectData(prev => ({ ...prev, examDate: e.target.value }))}
+                            />
+                          </div>
+                        </div>
+                        <div>
+                          <Label htmlFor="dailyHours">Daily Study Hours</Label>
+                          <Input
+                            id="dailyHours"
+                            type="number"
+                            min="1"
+                            max="24"
+                            value={newSubjectData.dailyHours}
+                            onChange={(e) => setNewSubjectData(prev => ({ ...prev, dailyHours: parseInt(e.target.value) || 2 }))}
+                          />
+                          <p className="text-sm text-muted-foreground mt-1">
+                            Time will be distributed equally among all topics
+                          </p>
+                        </div>
+                        <div>
+                          <div className="flex items-center justify-between mb-2">
+                            <Label>Topics</Label>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={addTopicField}
+                              className="h-8"
+                            >
+                              <Plus className="h-4 w-4 mr-1" />
+                              Add Topic
+                            </Button>
+                          </div>
+                          <div className="space-y-2">
+                            {newSubjectData.topics.map((topic, index) => (
+                              <div key={index} className="flex gap-2">
+                                <Input
+                                  value={topic}
+                                  onChange={(e) => updateTopicField(index, e.target.value)}
+                                  placeholder={`Topic ${index + 1}`}
+                                />
+                                {newSubjectData.topics.length > 1 && (
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => removeTopicField(index)}
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                          <p className="text-sm text-muted-foreground mt-2">
+                            Each topic will get approximately {hoursPerTopic.toFixed(1)} hours per day
+                          </p>
+                        </div>
+                        <div className="flex gap-2 justify-end">
+                          <Button variant="outline" onClick={() => setIsAddingSubject(false)}>
+                            Cancel
+                          </Button>
+                          <Button onClick={handleAddSubject}>
+                            Add Subject
+                          </Button>
+                        </div>
+                      </div>
+                    </DialogContent>
+                  </Dialog>
                 </div>
               </div>
             </CardHeader>
