@@ -174,11 +174,21 @@ export const ExamStudyPlanner = ({ onBack }: ExamStudyPlannerProps) => {
 
     setTimetable(newTimetable);
     setHasGeneratedTimetable(true);
-    localStorage.setItem("examTimetable", JSON.stringify(newTimetable));
+    
+    // Save to database
+    savePlan('exam', {
+      globalSettings,
+      timetable: newTimetable,
+      subjects: subjects.map(s => ({
+        id: s.id,
+        name: s.name,
+        topics: s.topics
+      }))
+    });
 
     toast({
       title: "Schedule generated!",
-      description: "Your AI-powered study plan is ready.",
+      description: "Your AI-powered study plan is ready. Check the AI Schedule tab.",
     });
   };
 

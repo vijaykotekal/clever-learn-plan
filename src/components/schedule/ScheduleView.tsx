@@ -3,47 +3,40 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Calendar, Clock, Brain, CheckCircle2, AlertCircle, Download, RefreshCw, Youtube, FileText, ExternalLink } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { AIScheduler } from "@/utils/aiScheduler";
+import { useSubjects } from "@/hooks/useSubjects";
+import { useStudyPlans } from "@/hooks/useStudyPlans";
 
 export const ScheduleView = () => {
-  const [subjects, setSubjects] = useState<any[]>([]);
+  const { subjects: dbSubjects } = useSubjects();
+  const { plans, loading } = useStudyPlans();
   const [schedulePlan, setSchedulePlan] = useState<any>(null);
+  const [examPlan, setExamPlan] = useState<any>(null);
   const [selectedWeek, setSelectedWeek] = useState(0);
-  const [isGenerating, setIsGenerating] = useState(false);
   const [selectedTask, setSelectedTask] = useState<any>(null);
+  const [activeTab, setActiveTab] = useState<string>("daily");
   const { toast } = useToast();
-
-  const scheduler = new AIScheduler();
 
   useEffect(() => {
     loadScheduleData();
-  }, []);
+  }, [plans]);
 
   const loadScheduleData = () => {
-    const savedSubjects = localStorage.getItem("studyPlannerSubjects");
-    if (savedSubjects) {
-      const subjectsData = JSON.parse(savedSubjects);
-      setSubjects(subjectsData);
-      generateSchedule(subjectsData);
-    }
-  };
+    if (plans.length === 0) return;
 
-  const generateSchedule = async (subjectsData: any[]) => {
-    setIsGenerating(true);
-    
-    // Simulate AI processing time
-    setTimeout(() => {
-      const plan = scheduler.generateSchedule(subjectsData);
-      setSchedulePlan(plan);
-      setIsGenerating(false);
-      
-      toast({
-        title: "Schedule generated!",
-        description: "Your AI-powered study plan is ready.",
-      });
-    }, 1500);
+    // Load the most recent daily plan
+    const dailyPlan = plans.find(p => p.plan_type === 'daily');
+    if (dailyPlan) {
+      setSchedulePlan(dailyPlan.plan_data);
+    }
+
+    // Load the most recent exam plan
+    const examPlanData = plans.find(p => p.plan_type === 'exam');
+    if (examPlanData) {
+      setExamPlan(examPlanData.plan_data);
+    }
   };
 
   const markTaskCompleted = (taskId: string) => {
@@ -144,34 +137,28 @@ export const ScheduleView = () => {
     }
   };
 
-  if (!schedulePlan && !isGenerating) {
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center">
+          <Brain className="h-16 w-16 text-primary mx-auto mb-4 animate-study-pulse" />
+          <h3 className="text-xl font-semibold mb-2">Loading schedules...</h3>
+        </div>
+      </div>
+    );
+  }
+
+  if (!schedulePlan && !examPlan) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="text-center">
           <Brain className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
           <h3 className="text-xl font-semibold mb-2">No schedule generated</h3>
-          <p className="text-muted-foreground mb-4">Add subjects and topics to generate your AI-powered study schedule</p>
-          <Button variant="study" onClick={loadScheduleData}>
-            Generate Schedule
-          </Button>
+          <p className="text-muted-foreground mb-4">Go to Daily-wise or Exam-wise Study mode and generate a schedule</p>
         </div>
       </div>
     );
   }
-
-  if (isGenerating) {
-    return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="text-center">
-          <Brain className="h-16 w-16 text-primary mx-auto mb-4 animate-study-pulse" />
-          <h3 className="text-xl font-semibold mb-2">AI is generating your schedule...</h3>
-          <p className="text-muted-foreground">Analyzing your subjects and optimizing your study plan</p>
-        </div>
-      </div>
-    );
-  }
-
-  const weekDates = getWeekDates(selectedWeek);
 
   return (
     <div className="space-y-6">
@@ -182,57 +169,103 @@ export const ScheduleView = () => {
           <p className="text-muted-foreground">Your personalized, AI-optimized study plan</p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" onClick={exportSchedule}>
-            <Download className="h-4 w-4 mr-2" />
-            Export CSV
-          </Button>
-          <Button variant="study" onClick={loadScheduleData}>
-            <RefreshCw className="h-4 w-4 mr-2" />
-            Regenerate
-          </Button>
+          {schedulePlan && (
+            <Button variant="outline" onClick={exportSchedule}>
+              <Download className="h-4 w-4 mr-2" />
+              Export CSV
+            </Button>
+          )}
         </div>
       </div>
 
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <TabsList>
+          <TabsTrigger value="daily" disabled={!schedulePlan}>Daily-wise Schedule</TabsTrigger>
+          <TabsTrigger value="exam" disabled={!examPlan}>Exam-wise Schedule</TabsTrigger>
+        </TabsList>
+
+        {/* Daily Schedule Tab */}
+        <TabsContent value="daily" className="space-y-6">
+          {schedulePlan && <DailyScheduleContent 
+            schedulePlan={schedulePlan}
+            selectedWeek={selectedWeek}
+            setSelectedWeek={setSelectedWeek}
+            selectedTask={selectedTask}
+            setSelectedTask={setSelectedTask}
+            markTaskCompleted={markTaskCompleted}
+            getWeekDates={getWeekDates}
+            getTasksForDate={getTasksForDate}
+            getDifficultyColor={getDifficultyColor}
+          />}
+        </TabsContent>
+
+        {/* Exam Schedule Tab */}
+        <TabsContent value="exam" className="space-y-6">
+          {examPlan && <ExamScheduleContent examPlan={examPlan} />}
+        </TabsContent>
+      </Tabs>
+    </div>
+  );
+};
+
+// Daily Schedule Content Component
+const DailyScheduleContent = ({ 
+  schedulePlan, 
+  selectedWeek, 
+  setSelectedWeek,
+  selectedTask,
+  setSelectedTask,
+  markTaskCompleted,
+  getWeekDates,
+  getTasksForDate,
+  getDifficultyColor
+}: any) => {
+  const weekDates = getWeekDates(selectedWeek);
+  
+  return (
+    <>
       {/* Schedule Stats */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card className="gradient-card">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Total Study Hours</p>
-                <p className="text-3xl font-bold">{schedulePlan.totalHours.toFixed(1)}</p>
-              </div>
-              <Clock className="h-8 w-8 text-primary" />
-            </div>
-          </CardContent>
-        </Card>
 
-        <Card className="gradient-card">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Days Until Exams</p>
-                <p className="text-3xl font-bold">{schedulePlan.daysUntilExams}</p>
-              </div>
-              <Calendar className="h-8 w-8 text-warning" />
+      <Card className="gradient-card">
+        <CardContent className="p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-muted-foreground">Total Study Hours</p>
+              <p className="text-3xl font-bold">{schedulePlan.totalHours?.toFixed(1) || 0}</p>
             </div>
-          </CardContent>
-        </Card>
+            <Clock className="h-8 w-8 text-primary" />
+          </div>
+        </CardContent>
+      </Card>
 
-        <Card className="gradient-card">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Avg Hours/Day</p>
-                <p className="text-3xl font-bold">{schedulePlan.averageHoursPerDay.toFixed(1)}</p>
-              </div>
-              <Brain className="h-8 w-8 text-secondary" />
+      <Card className="gradient-card">
+        <CardContent className="p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-muted-foreground">Days Until Exams</p>
+              <p className="text-3xl font-bold">{schedulePlan.daysUntilExams || 0}</p>
             </div>
-          </CardContent>
-        </Card>
-      </div>
+            <Calendar className="h-8 w-8 text-warning" />
+          </div>
+        </CardContent>
+      </Card>
 
-      {/* AI Recommendations */}
+      <Card className="gradient-card">
+        <CardContent className="p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-muted-foreground">Avg Hours/Day</p>
+              <p className="text-3xl font-bold">{schedulePlan.averageHoursPerDay?.toFixed(1) || 0}</p>
+            </div>
+            <Brain className="h-8 w-8 text-secondary" />
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+
+    {/* AI Recommendations */}
+    {schedulePlan.recommendations && schedulePlan.recommendations.length > 0 && (
       <Card className="gradient-card">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -254,116 +287,117 @@ export const ScheduleView = () => {
           </div>
         </CardContent>
       </Card>
+    )}
 
-      {/* Week Navigation */}
-      <div className="flex items-center justify-center gap-4">
-        <Button 
-          variant="outline" 
-          onClick={() => setSelectedWeek(selectedWeek - 1)}
-          disabled={selectedWeek <= -4} // Limit to 4 weeks in the past
-        >
-          Previous Week
-        </Button>
-        <div className="text-center">
-          <h3 className="font-semibold">
-            {weekDates[0].toLocaleDateString('en-US', { month: 'long', day: 'numeric' })} - {' '}
-            {weekDates[6].toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
-          </h3>
-          <p className="text-sm text-muted-foreground">
-            {selectedWeek === 0 ? "This Week" : 
-             selectedWeek > 0 ? `${selectedWeek} week${selectedWeek > 1 ? 's' : ''} ahead` :
-             `${Math.abs(selectedWeek)} week${Math.abs(selectedWeek) > 1 ? 's' : ''} ago`}
-          </p>
-        </div>
-        <Button 
-          variant="outline" 
-          onClick={() => setSelectedWeek(selectedWeek + 1)}
-          disabled={selectedWeek >= 8} // Limit to 8 weeks in the future
-        >
-          Next Week
-        </Button>
+    {/* Week Navigation */}
+    <div className="flex items-center justify-center gap-4">
+      <Button 
+        variant="outline" 
+        onClick={() => setSelectedWeek(selectedWeek - 1)}
+        disabled={selectedWeek <= -4}
+      >
+        Previous Week
+      </Button>
+      <div className="text-center">
+        <h3 className="font-semibold">
+          {weekDates[0].toLocaleDateString('en-US', { month: 'long', day: 'numeric' })} - {' '}
+          {weekDates[6].toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
+        </h3>
+        <p className="text-sm text-muted-foreground">
+          {selectedWeek === 0 ? "This Week" : 
+            selectedWeek > 0 ? `${selectedWeek} week${selectedWeek > 1 ? 's' : ''} ahead` :
+            `${Math.abs(selectedWeek)} week${Math.abs(selectedWeek) > 1 ? 's' : ''} ago`}
+        </p>
       </div>
+      <Button 
+        variant="outline" 
+        onClick={() => setSelectedWeek(selectedWeek + 1)}
+        disabled={selectedWeek >= 8}
+      >
+        Next Week
+      </Button>
+    </div>
 
-      {/* Calendar View */}
-      <div className="grid grid-cols-1 lg:grid-cols-7 gap-4">
-        {weekDates.map((date, index) => {
-          const tasks = getTasksForDate(date);
-          const isToday = date.toDateString() === new Date().toDateString();
-          const isPast = date < new Date() && !isToday;
-          
-          return (
-            <Card key={index} className={`${isToday ? 'ring-2 ring-primary' : ''} ${isPast ? 'opacity-75' : ''}`}>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-center">
-                  <div className="text-sm text-muted-foreground">
-                    {date.toLocaleDateString('en-US', { weekday: 'short' })}
-                  </div>
-                  <div className={`text-lg font-bold ${isToday ? 'text-primary' : ''}`}>
-                    {date.getDate()}
-                  </div>
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                {tasks.length === 0 ? (
-                  <div className="text-center py-4 text-muted-foreground text-sm">
-                    No tasks scheduled
-                  </div>
-                ) : (
-                  tasks.map((task: any) => (
-                    <div key={task.id} className={`p-2 rounded-lg border ${task.completed ? 'bg-success/10 border-success' : 'bg-card border-border'}`}>
-                      <div className="flex items-center justify-between mb-1">
-                        <Badge 
-                          variant="secondary" 
-                          className={`text-xs ${getDifficultyColor(task.difficulty)}`}
+    {/* Calendar View */}
+    <div className="grid grid-cols-1 lg:grid-cols-7 gap-4">
+      {weekDates.map((date, index) => {
+        const tasks = getTasksForDate(date);
+        const isToday = date.toDateString() === new Date().toDateString();
+        const isPast = date < new Date() && !isToday;
+        
+        return (
+          <Card key={index} className={`${isToday ? 'ring-2 ring-primary' : ''} ${isPast ? 'opacity-75' : ''}`}>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-center">
+                <div className="text-sm text-muted-foreground">
+                  {date.toLocaleDateString('en-US', { weekday: 'short' })}
+                </div>
+                <div className={`text-lg font-bold ${isToday ? 'text-primary' : ''}`}>
+                  {date.getDate()}
+                </div>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              {tasks.length === 0 ? (
+                <div className="text-center py-4 text-muted-foreground text-sm">
+                  No tasks scheduled
+                </div>
+              ) : (
+                tasks.map((task: any) => (
+                  <div key={task.id} className={`p-2 rounded-lg border ${task.completed ? 'bg-success/10 border-success' : 'bg-card border-border'}`}>
+                    <div className="flex items-center justify-between mb-1">
+                      <Badge 
+                        variant="secondary" 
+                        className={`text-xs ${getDifficultyColor(task.difficulty)}`}
+                      >
+                        {task.difficulty}
+                      </Badge>
+                      {task.completed && (
+                        <CheckCircle2 className="h-4 w-4 text-success" />
+                      )}
+                    </div>
+                    <h4 className="text-xs font-medium truncate" title={task.topicTitle}>
+                      {task.topicTitle}
+                    </h4>
+                    <p className="text-xs text-muted-foreground">{task.subjectName}</p>
+                    <div className="flex items-center justify-between mt-1">
+                      <span className="text-xs text-muted-foreground">
+                        {task.estimatedHours}h
+                      </span>
+                      <div className="flex gap-1">
+                        <Button 
+                          size="sm" 
+                          variant="outline" 
+                          className="h-6 w-6 p-0"
+                          onClick={() => setSelectedTask(task)}
+                          title="View details"
                         >
-                          {task.difficulty}
-                        </Badge>
-                        {task.completed && (
-                          <CheckCircle2 className="h-4 w-4 text-success" />
-                        )}
-                      </div>
-                      <h4 className="text-xs font-medium truncate" title={task.topicTitle}>
-                        {task.topicTitle}
-                      </h4>
-                      <p className="text-xs text-muted-foreground">{task.subjectName}</p>
-                      <div className="flex items-center justify-between mt-1">
-                        <span className="text-xs text-muted-foreground">
-                          {task.estimatedHours}h
-                        </span>
-                        <div className="flex gap-1">
+                          <FileText className="h-3 w-3" />
+                        </Button>
+                        {!task.completed && !isPast && (
                           <Button 
                             size="sm" 
                             variant="outline" 
-                            className="h-6 w-6 p-0"
-                            onClick={() => setSelectedTask(task)}
-                            title="View details"
+                            className="h-6 text-xs px-2"
+                            onClick={() => markTaskCompleted(task.id)}
                           >
-                            <FileText className="h-3 w-3" />
+                            Done
                           </Button>
-                          {!task.completed && !isPast && (
-                            <Button 
-                              size="sm" 
-                              variant="outline" 
-                              className="h-6 text-xs px-2"
-                              onClick={() => markTaskCompleted(task.id)}
-                            >
-                              Done
-                            </Button>
-                          )}
-                        </div>
+                        )}
                       </div>
                     </div>
-                  ))
-                )}
-              </CardContent>
-            </Card>
-          );
-        })}
-      </div>
+                  </div>
+                ))
+              )}
+            </CardContent>
+          </Card>
+        );
+      })}
+    </div>
 
-      {/* Task Details Dialog */}
-      {selectedTask && (
-        <Dialog open={!!selectedTask} onOpenChange={() => setSelectedTask(null)}>
+    {/* Task Details Dialog */}
+    {selectedTask && (
+      <Dialog open={!!selectedTask} onOpenChange={() => setSelectedTask(null)}>
           <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
@@ -440,9 +474,95 @@ export const ScheduleView = () => {
                 </div>
               )}
             </div>
-          </DialogContent>
-        </Dialog>
-      )}
+        </DialogContent>
+      </Dialog>
+    )}
+  </>
+);
+};
+
+// Exam Schedule Content Component
+const ExamScheduleContent = ({ examPlan }: any) => {
+  const { timetable, globalSettings } = examPlan;
+
+  if (!timetable || timetable.length === 0) {
+    return (
+      <div className="text-center py-8">
+        <p className="text-muted-foreground">No exam schedule available</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <Card className="gradient-card">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Daily Study Hours</p>
+                <p className="text-3xl font-bold">{globalSettings?.dailyStudyHours || 0}</p>
+              </div>
+              <Clock className="h-8 w-8 text-primary" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="gradient-card">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Total Days</p>
+                <p className="text-3xl font-bold">{timetable.length}</p>
+              </div>
+              <Calendar className="h-8 w-8 text-warning" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="gradient-card">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Subjects</p>
+                <p className="text-3xl font-bold">{examPlan.subjects?.length || 0}</p>
+              </div>
+              <Brain className="h-8 w-8 text-secondary" />
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Timetable */}
+      <div className="space-y-4">
+        {timetable.map((entry: any, index: number) => (
+          <Card key={index}>
+            <CardHeader>
+              <CardTitle className="flex items-center justify-between">
+                <span>{entry.dayOfWeek}</span>
+                <Badge variant="outline">{new Date(entry.date).toLocaleDateString()}</Badge>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {entry.subjects.map((subjectEntry: any, subIndex: number) => (
+                  <div key={subIndex} className="p-4 border rounded-lg">
+                    <div className="flex items-center justify-between mb-2">
+                      <h4 className="font-semibold">{subjectEntry.subject.name}</h4>
+                      <Badge>{subjectEntry.timeSlot}</Badge>
+                    </div>
+                    <div className="text-sm text-muted-foreground">
+                      <p className="mb-1">Topics: {subjectEntry.topics.map((t: any) => t.title).join(', ')}</p>
+                      <p>Allocated Hours: {subjectEntry.allocatedHours.toFixed(1)}h</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
     </div>
   );
 };

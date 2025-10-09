@@ -8,10 +8,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { Calendar, Clock, Plus, ArrowLeft, BookOpen, Target, Edit, Trash2, BarChart3 } from "lucide-react";
+import { Calendar, Clock, Plus, ArrowLeft, BookOpen, Target, Edit, Trash2, BarChart3, Sparkles } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useSubjects } from "@/hooks/useSubjects";
 import { useStudyPlans } from "@/hooks/useStudyPlans";
+import { AIScheduler } from "@/utils/aiScheduler";
 
 interface DailyStudyPlannerProps {
   onBack: () => void;
@@ -41,6 +42,7 @@ export const DailyStudyPlanner = ({ onBack }: DailyStudyPlannerProps) => {
   const [selectedSubject, setSelectedSubject] = useState<Subject | null>(null);
   const [isAddingTopic, setIsAddingTopic] = useState(false);
   const [isAddingSubject, setIsAddingSubject] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
   const [newTopicData, setNewTopicData] = useState({ title: "", difficulty: "medium" as const });
   const [newSubjectData, setNewSubjectData] = useState({
     name: "",
@@ -49,6 +51,7 @@ export const DailyStudyPlanner = ({ onBack }: DailyStudyPlannerProps) => {
     topics: [""]
   });
   const { toast } = useToast();
+  const scheduler = new AIScheduler();
 
   // Transform database subjects to local format
   const subjects: Subject[] = dbSubjects.map(s => ({
@@ -139,32 +142,48 @@ export const DailyStudyPlanner = ({ onBack }: DailyStudyPlannerProps) => {
     ? newSubjectData.dailyHours / newSubjectData.topics.filter(t => t.trim()).length
     : 0;
 
-  const generateDailyTimetable = (subject: Subject) => {
-    const today = new Date();
-    const examDate = new Date(subject.examDate);
-    const daysUntilExam = Math.ceil((examDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
-    
-    if (daysUntilExam <= 0) return [];
-
-    const dailySchedule = [];
-    const totalTopics = subject.topics.length;
-    const hoursPerTopic = subject.dailyHours / totalTopics;
-
-    for (let day = 0; day < Math.min(daysUntilExam, 30); day++) {
-      const currentDate = new Date(today);
-      currentDate.setDate(today.getDate() + day);
-      
-      dailySchedule.push({
-        date: currentDate.toDateString(),
-        topics: subject.topics.map(topic => ({
-          ...topic,
-          allocatedTime: hoursPerTopic,
-          timeSlot: `${9 + (topic.id.charCodeAt(0) % 8)}:00 - ${9 + (topic.id.charCodeAt(0) % 8) + hoursPerTopic}:00`
-        }))
+  const generateAISchedule = async () => {
+    if (subjects.length === 0) {
+      toast({
+        title: "No subjects",
+        description: "Please add subjects first before generating a schedule",
+        variant: "destructive",
       });
+      return;
     }
 
-    return dailySchedule;
+    setIsGenerating(true);
+
+    // Transform subjects to AIScheduler format
+    const aiSubjects = subjects.map(s => ({
+      id: s.id,
+      name: s.name,
+      examDate: s.examDate,
+      dailyHours: s.dailyHours,
+      progress: s.progress,
+      topics: s.topics.map(t => ({
+        id: t.id,
+        title: t.title,
+        subjectId: s.id,
+        subjectName: s.name,
+        estimatedHours: t.estimatedHours,
+        difficulty: t.difficulty,
+        progress: t.progress,
+        completed: t.completed
+      }))
+    }));
+
+    // Simulate AI processing
+    setTimeout(async () => {
+      const plan = scheduler.generateSchedule(aiSubjects);
+      await savePlan('daily', plan);
+      
+      setIsGenerating(false);
+      toast({
+        title: "Schedule generated!",
+        description: "Your AI-powered daily study plan is ready. Check the AI Schedule tab.",
+      });
+    }, 1500);
   };
 
   return (
@@ -201,6 +220,14 @@ export const DailyStudyPlanner = ({ onBack }: DailyStudyPlannerProps) => {
                   <CardDescription>Organize your subjects and topics for optimal learning</CardDescription>
                 </div>
                 <div className="flex gap-2">
+                  <Button 
+                    variant="study" 
+                    onClick={generateAISchedule}
+                    disabled={isGenerating || subjects.length === 0}
+                  >
+                    <Sparkles className="h-4 w-4 mr-2" />
+                    {isGenerating ? "Generating..." : "Generate AI Schedule"}
+                  </Button>
                   <Button variant="outline" disabled>
                     <BarChart3 className="h-4 w-4 mr-2" />
                     Progress Chart
@@ -572,31 +599,6 @@ export const DailyStudyPlanner = ({ onBack }: DailyStudyPlannerProps) => {
                           </CardContent>
                         </Card>
                       ))}
-                    </div>
-
-                    {/* Daily Timetable */}
-                    <div className="space-y-3">
-                      <h4 className="font-medium">Generated Daily Timetable</h4>
-                      <div className="space-y-2 max-h-96 overflow-y-auto">
-                        {generateDailyTimetable(selectedSubject).slice(0, 7).map((day, index) => (
-                          <Card key={index}>
-                            <CardContent className="p-4">
-                              <h5 className="font-medium mb-2">{day.date}</h5>
-                              <div className="space-y-2">
-                                {day.topics.map((topic) => (
-                                  <div key={topic.id} className="flex items-center justify-between text-sm border rounded p-2">
-                                    <span>{topic.title}</span>
-                                    <div className="flex items-center gap-2">
-                                      <Badge variant="outline">{topic.timeSlot}</Badge>
-                                      <span>{topic.allocatedTime.toFixed(1)}h</span>
-                                    </div>
-                                  </div>
-                                ))}
-                              </div>
-                            </CardContent>
-                          </Card>
-                        ))}
-                      </div>
                     </div>
                   </div>
                 ) : (
