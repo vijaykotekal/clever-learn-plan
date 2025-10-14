@@ -4,6 +4,7 @@ import path from "path";
 import { componentTagger } from "lovable-tagger";
 
 // https://vitejs.dev/config/
+// touch: force dev-server to reload env vars
 export default defineConfig(({ mode }) => ({
   server: {
     host: "::",
