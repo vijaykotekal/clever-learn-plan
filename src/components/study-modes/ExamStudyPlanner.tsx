@@ -6,10 +6,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { Calendar, Clock, ArrowLeft, BookOpen, Target, Settings, Play } from "lucide-react";
+import { Calendar, Clock, ArrowLeft, BookOpen, Target, Settings, Play, Eye } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useSubjects } from "@/hooks/useSubjects";
 import { useStudyPlans } from "@/hooks/useStudyPlans";
+import { SubjectDetails } from "@/components/subjects/SubjectDetails";
 
 interface ExamStudyPlannerProps {
   onBack: () => void;
@@ -53,6 +54,7 @@ interface TimetableEntry {
 export const ExamStudyPlanner = ({ onBack }: ExamStudyPlannerProps) => {
   const { subjects: dbSubjects, loading } = useSubjects();
   const { savePlan } = useStudyPlans();
+  const [viewingSubject, setViewingSubject] = useState<typeof dbSubjects[0] | null>(null);
   const [globalSettings, setGlobalSettings] = useState<GlobalSettings>({
     dailyStudyHours: 8,
     examWeekStart: "",
@@ -201,6 +203,21 @@ export const ExamStudyPlanner = ({ onBack }: ExamStudyPlannerProps) => {
       total + subject.topics.filter(topic => topic.completed).length, 0
     );
   };
+
+  if (viewingSubject) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center gap-4">
+          <Button variant="ghost" onClick={() => setViewingSubject(null)} className="flex items-center gap-2">
+            <ArrowLeft className="h-4 w-4" />
+            Back to Subjects
+          </Button>
+        </div>
+
+        <SubjectDetails subject={viewingSubject} />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -373,6 +390,18 @@ export const ExamStudyPlanner = ({ onBack }: ExamStudyPlannerProps) => {
                       </div>
                     </div>
                   </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="mt-3 w-full"
+                    onClick={() => {
+                      const dbSubject = dbSubjects.find(s => s.id === subject.id);
+                      if (dbSubject) setViewingSubject(dbSubject);
+                    }}
+                  >
+                    <Eye className="h-4 w-4 mr-2" />
+                    View Resources
+                  </Button>
                 </div>
               ))}
             </div>

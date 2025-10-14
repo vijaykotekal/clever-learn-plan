@@ -8,11 +8,12 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { Calendar, Clock, Plus, ArrowLeft, BookOpen, Target, Edit, Trash2, BarChart3, Sparkles } from "lucide-react";
+import { Calendar, Clock, Plus, ArrowLeft, BookOpen, Target, Edit, Trash2, BarChart3, Sparkles, Eye } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useSubjects } from "@/hooks/useSubjects";
 import { useStudyPlans } from "@/hooks/useStudyPlans";
 import { AIScheduler } from "@/utils/aiScheduler";
+import { SubjectDetails } from "@/components/subjects/SubjectDetails";
 
 interface DailyStudyPlannerProps {
   onBack: () => void;
@@ -40,6 +41,7 @@ export const DailyStudyPlanner = ({ onBack }: DailyStudyPlannerProps) => {
   const { subjects: dbSubjects, loading, addTopic: dbAddTopic, addSubject } = useSubjects();
   const { savePlan } = useStudyPlans();
   const [selectedSubject, setSelectedSubject] = useState<Subject | null>(null);
+  const [viewingSubject, setViewingSubject] = useState<typeof dbSubjects[0] | null>(null);
   const [isAddingTopic, setIsAddingTopic] = useState(false);
   const [isAddingSubject, setIsAddingSubject] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -185,6 +187,21 @@ export const DailyStudyPlanner = ({ onBack }: DailyStudyPlannerProps) => {
       });
     }, 1500);
   };
+
+  if (viewingSubject) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center gap-4">
+          <Button variant="ghost" onClick={() => setViewingSubject(null)} className="flex items-center gap-2">
+            <ArrowLeft className="h-4 w-4" />
+            Back to Subjects
+          </Button>
+        </div>
+
+        <SubjectDetails subject={viewingSubject} />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -509,6 +526,19 @@ export const DailyStudyPlanner = ({ onBack }: DailyStudyPlannerProps) => {
                             <span>Topics: {subject.topics.length}</span>
                             <Badge variant="secondary">{subject.topics.filter(t => t.completed).length} completed</Badge>
                           </div>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="mt-3 w-full"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              const dbSubject = dbSubjects.find(s => s.id === subject.id);
+                              if (dbSubject) setViewingSubject(dbSubject);
+                            }}
+                          >
+                            <Eye className="h-4 w-4 mr-2" />
+                            View Resources
+                          </Button>
                         </div>
                       </CardContent>
                     </Card>
