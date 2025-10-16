@@ -142,6 +142,54 @@ export type Database = {
           },
         ]
       }
+      user_notes: {
+        Row: {
+          created_at: string
+          file_name: string
+          file_path: string
+          file_size: number
+          id: string
+          subject_id: string
+          topic_id: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          file_name: string
+          file_path: string
+          file_size: number
+          id?: string
+          subject_id: string
+          topic_id?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          file_name?: string
+          file_path?: string
+          file_size?: number
+          id?: string
+          subject_id?: string
+          topic_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_notes_subject_id_fkey"
+            columns: ["subject_id"]
+            isOneToOne: false
+            referencedRelation: "subjects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_notes_topic_id_fkey"
+            columns: ["topic_id"]
+            isOneToOne: false
+            referencedRelation: "topics"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never

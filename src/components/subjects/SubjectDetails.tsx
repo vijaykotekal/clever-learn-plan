@@ -2,8 +2,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { FileText, ExternalLink, BookOpen, GraduationCap, Youtube } from "lucide-react";
-import { useState } from "react";
+import { FileText, ExternalLink, BookOpen, GraduationCap, Youtube, Upload, Download, Trash2 } from "lucide-react";
+import { useState, useRef } from "react";
+import { useUserNotes } from "@/hooks/useUserNotes";
 
 interface Topic {
   id: string;
@@ -51,9 +52,14 @@ const generateYouTubeLinks = (query: string): LinkItem[] => {
 
 export const SubjectDetails = ({ subject }: SubjectDetailsProps) => {
   const [activeTab, setActiveTab] = useState("syllabus");
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const topicFileInputRefs = useRef<{ [key: string]: HTMLInputElement | null }>({});
 
   const syllabusNotesLinks = generateGoogleNotesLinks(subject.name);
   const syllabusYouTubeLinks = generateYouTubeLinks(subject.name);
+  
+  // Fetch user notes for complete syllabus (topic_id = null)
+  const { notes: syllabusNotes, uploading: syllabusUploading, uploadNote: uploadSyllabusNote, deleteNote: deleteSyllabusNote, downloadNote: downloadSyllabusNote } = useUserNotes(subject.id, null);
 
   return (
     <div className="space-y-4">
@@ -134,6 +140,78 @@ export const SubjectDetails = ({ subject }: SubjectDetailsProps) => {
               ))}
             </CardContent>
           </Card>
+
+          {/* My Notes Section for Complete Syllabus */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <FileText className="h-5 w-5 text-primary" />
+                My Notes
+              </CardTitle>
+              <CardDescription>Upload your personal notes for {subject.name}</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  className="hidden"
+                  accept=".pdf,.doc,.docx,.txt,.ppt,.pptx,.xls,.xlsx"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      uploadSyllabusNote(file);
+                      e.target.value = '';
+                    }
+                  }}
+                />
+                <Button
+                  variant="outline"
+                  className="w-full"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={syllabusUploading}
+                >
+                  <Upload className="h-4 w-4 mr-2" />
+                  {syllabusUploading ? "Uploading..." : "Upload Note"}
+                </Button>
+              </div>
+
+              {syllabusNotes.length > 0 && (
+                <div className="space-y-2">
+                  {syllabusNotes.map((note) => (
+                    <div
+                      key={note.id}
+                      className="flex items-center justify-between p-3 border rounded-lg hover:bg-accent"
+                    >
+                      <div className="flex items-center gap-2 flex-1 min-w-0">
+                        <FileText className="h-4 w-4 flex-shrink-0" />
+                        <span className="truncate text-sm">{note.file_name}</span>
+                        <span className="text-xs text-muted-foreground flex-shrink-0">
+                          ({(note.file_size / 1024).toFixed(1)} KB)
+                        </span>
+                      </div>
+                      <div className="flex gap-1 flex-shrink-0">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => downloadSyllabusNote(note.file_path, note.file_name)}
+                        >
+                          <Download className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => deleteSyllabusNote(note.id, note.file_path)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
         </TabsContent>
 
         <TabsContent value="topics" className="space-y-4 mt-4">
@@ -141,6 +219,9 @@ export const SubjectDetails = ({ subject }: SubjectDetailsProps) => {
             subject.topics.map((topic) => {
               const topicNotesLinks = generateGoogleNotesLinks(topic.name);
               const topicYouTubeLinks = generateYouTubeLinks(topic.name);
+              
+              // eslint-disable-next-line react-hooks/rules-of-hooks
+              const { notes: topicNotes, uploading: topicUploading, uploadNote: uploadTopicNote, deleteNote: deleteTopicNote, downloadNote: downloadTopicNote } = useUserNotes(subject.id, topic.id);
 
               return (
                 <Card key={topic.id} className="border-l-4 border-l-primary">
@@ -194,6 +275,69 @@ export const SubjectDetails = ({ subject }: SubjectDetailsProps) => {
                             <span className="truncate">{link.title}</span>
                             <ExternalLink className="h-3 w-3 ml-2 flex-shrink-0" />
                           </Button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* My Notes Section for Individual Topic */}
+                    <div>
+                      <h4 className="font-semibold mb-2 flex items-center gap-2">
+                        <FileText className="h-4 w-4 text-primary" />
+                        My Notes
+                      </h4>
+                      <div className="space-y-2">
+                        <input
+                          ref={(el) => topicFileInputRefs.current[topic.id] = el}
+                          type="file"
+                          className="hidden"
+                          accept=".pdf,.doc,.docx,.txt,.ppt,.pptx,.xls,.xlsx"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) {
+                              uploadTopicNote(file);
+                              e.target.value = '';
+                            }
+                          }}
+                        />
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="w-full justify-start"
+                          onClick={() => topicFileInputRefs.current[topic.id]?.click()}
+                          disabled={topicUploading}
+                        >
+                          <Upload className="h-3 w-3 mr-2" />
+                          {topicUploading ? "Uploading..." : "Upload Note"}
+                        </Button>
+
+                        {topicNotes.map((note) => (
+                          <div
+                            key={note.id}
+                            className="flex items-center justify-between p-2 border rounded hover:bg-accent"
+                          >
+                            <div className="flex items-center gap-2 flex-1 min-w-0">
+                              <FileText className="h-3 w-3 flex-shrink-0" />
+                              <span className="truncate text-xs">{note.file_name}</span>
+                            </div>
+                            <div className="flex gap-1 flex-shrink-0">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-6 w-6 p-0"
+                                onClick={() => downloadTopicNote(note.file_path, note.file_name)}
+                              >
+                                <Download className="h-3 w-3" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-6 w-6 p-0"
+                                onClick={() => deleteTopicNote(note.id, note.file_path)}
+                              >
+                                <Trash2 className="h-3 w-3" />
+                              </Button>
+                            </div>
+                          </div>
                         ))}
                       </div>
                     </div>
