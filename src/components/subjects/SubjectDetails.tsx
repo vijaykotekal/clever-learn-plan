@@ -2,7 +2,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { FileText, ExternalLink, BookOpen, GraduationCap } from "lucide-react";
+import { FileText, ExternalLink, BookOpen, GraduationCap, Youtube } from "lucide-react";
 import { useState } from "react";
 
 interface Topic {
@@ -39,11 +39,21 @@ const generateGoogleNotesLinks = (query: string): LinkItem[] => {
   ].map((item, index) => ({ ...item, id: `${index}` }));
 };
 
+const generateYouTubeLinks = (query: string): LinkItem[] => {
+  const baseUrl = "https://www.youtube.com/results?search_query=";
+  return [
+    { title: "Complete Tutorial", url: `${baseUrl}${encodeURIComponent(`${query} complete tutorial`)}` },
+    { title: "Lecture Series", url: `${baseUrl}${encodeURIComponent(`${query} lectures`)}` },
+    { title: "Crash Course", url: `${baseUrl}${encodeURIComponent(`${query} crash course`)}` },
+  ].map((item, index) => ({ ...item, id: `youtube-${index}` }));
+};
+
 
 export const SubjectDetails = ({ subject }: SubjectDetailsProps) => {
   const [activeTab, setActiveTab] = useState("syllabus");
 
   const syllabusNotesLinks = generateGoogleNotesLinks(subject.name);
+  const syllabusYouTubeLinks = generateYouTubeLinks(subject.name);
 
   return (
     <div className="space-y-4">
@@ -97,12 +107,40 @@ export const SubjectDetails = ({ subject }: SubjectDetailsProps) => {
               ))}
             </CardContent>
           </Card>
+
+          {/* YouTube Links for Complete Subject */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Youtube className="h-5 w-5 text-red-500" />
+                Video Tutorials
+              </CardTitle>
+              <CardDescription>Watch video lectures for {subject.name}</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              {syllabusYouTubeLinks.map((link) => (
+                <Button
+                  key={link.id}
+                  variant="outline"
+                  className="w-full justify-between"
+                  onClick={() => window.open(link.url, '_blank')}
+                >
+                  <span className="flex items-center gap-2">
+                    <Youtube className="h-4 w-4" />
+                    {link.title}
+                  </span>
+                  <ExternalLink className="h-4 w-4" />
+                </Button>
+              ))}
+            </CardContent>
+          </Card>
         </TabsContent>
 
         <TabsContent value="topics" className="space-y-4 mt-4">
           {subject.topics && subject.topics.length > 0 ? (
             subject.topics.map((topic) => {
               const topicNotesLinks = generateGoogleNotesLinks(topic.name);
+              const topicYouTubeLinks = generateYouTubeLinks(topic.name);
 
               return (
                 <Card key={topic.id} className="border-l-4 border-l-primary">
@@ -115,7 +153,7 @@ export const SubjectDetails = ({ subject }: SubjectDetailsProps) => {
                     </div>
                     <CardDescription>{topic.time_allocated} minutes allocated</CardDescription>
                   </CardHeader>
-                  <CardContent>
+                  <CardContent className="space-y-4">
                     {/* Google Notes Links */}
                     <div>
                       <h4 className="font-semibold mb-2 flex items-center gap-2">
@@ -124,6 +162,28 @@ export const SubjectDetails = ({ subject }: SubjectDetailsProps) => {
                       </h4>
                       <div className="space-y-1">
                         {topicNotesLinks.slice(0, 3).map((link) => (
+                          <Button
+                            key={link.id}
+                            variant="ghost"
+                            size="sm"
+                            className="w-full justify-between text-sm"
+                            onClick={() => window.open(link.url, '_blank')}
+                          >
+                            <span className="truncate">{link.title}</span>
+                            <ExternalLink className="h-3 w-3 ml-2 flex-shrink-0" />
+                          </Button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* YouTube Links */}
+                    <div>
+                      <h4 className="font-semibold mb-2 flex items-center gap-2">
+                        <Youtube className="h-4 w-4 text-red-500" />
+                        Video Tutorials
+                      </h4>
+                      <div className="space-y-1">
+                        {topicYouTubeLinks.map((link) => (
                           <Button
                             key={link.id}
                             variant="ghost"
