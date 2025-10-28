@@ -155,10 +155,10 @@ export const ExamStudyPlanner = ({ onBack }: ExamStudyPlannerProps) => {
         const startTopicIndex = (day * topicsPerDay) % subject.topics.length;
         const endTopicIndex = Math.min(startTopicIndex + topicsPerDay, subject.topics.length);
         const todaysTopics = subject.topics.slice(startTopicIndex, endTopicIndex);
-        
-        const startHour = 9 + (index * hoursPerSubject);
+
+        const startHour = 17 + (index * hoursPerSubject);
         const endHour = startHour + hoursPerSubject;
-        
+
         return {
           subject,
           topics: todaysTopics,
