@@ -38,11 +38,11 @@ export const AuthDialog = ({ open, onOpenChange, onAuthSuccess }: AuthDialogProp
           .from('profiles')
           .select('*')
           .eq('id', data.user.id)
-          .single();
+          .maybeSingle();
 
-        const user = { 
-          name: profile?.name || "User", 
-          email: data.user.email || loginData.email 
+        const user = {
+          name: profile?.name || "User",
+          email: data.user.email || loginData.email
         };
         onAuthSuccess(user);
         onOpenChange(false);
