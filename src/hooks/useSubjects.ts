@@ -16,6 +16,7 @@ export interface Subject {
   id: string;
   user_id: string;
   name: string;
+  exam_date: string | null;
   study_time_preference: string | null;
   created_at: string;
   topics?: Topic[];
@@ -81,6 +82,7 @@ export const useSubjects = () => {
         .insert({
           user_id: user.id,
           name,
+          exam_date: examDate,
           study_time_preference: `${dailyHours}h/day until ${examDate}`,
         })
         .select()

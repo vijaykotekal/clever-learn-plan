@@ -23,6 +23,7 @@ import { useSubjects } from "@/hooks/useSubjects";
 import { useCompletedTasks } from "@/hooks/useCompletedTasks";
 import { AIScheduler } from "@/utils/aiScheduler";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+import { supabase } from "@/integrations/supabase/client";
 
 interface DashboardProps {
   onNavigate: (view: string) => void;
@@ -44,7 +45,7 @@ export const Dashboard = ({ onNavigate }: DashboardProps) => {
   const subjects = dbSubjects.map(s => ({
     id: s.id,
     name: s.name,
-    examDate: s.created_at,
+    examDate: s.exam_date || s.created_at,
     dailyHours: 2, // Default value
     progress: 0,
     topics: (s.topics || []).map(t => ({
@@ -64,6 +65,41 @@ export const Dashboard = ({ onNavigate }: DashboardProps) => {
       loadDashboardData();
     }
   }, [dbSubjects.length]);
+
+  // Subscribe to realtime changes
+  useEffect(() => {
+    const channel = supabase
+      .channel('dashboard-subjects')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'subjects'
+        },
+        () => {
+          // Reload dashboard when subjects change
+          loadDashboardData();
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'topics'
+        },
+        () => {
+          // Reload dashboard when topics change
+          loadDashboardData();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
 
   const loadDashboardData = () => {
     if (subjects.length === 0) return;

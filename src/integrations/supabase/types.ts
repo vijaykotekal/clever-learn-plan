@@ -83,6 +83,7 @@ export type Database = {
       subjects: {
         Row: {
           created_at: string | null
+          exam_date: string | null
           id: string
           name: string
           study_time_preference: string | null
@@ -90,6 +91,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string | null
+          exam_date?: string | null
           id?: string
           name: string
           study_time_preference?: string | null
@@ -97,6 +99,7 @@ export type Database = {
         }
         Update: {
           created_at?: string | null
+          exam_date?: string | null
           id?: string
           name?: string
           study_time_preference?: string | null

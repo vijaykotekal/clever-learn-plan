@@ -76,7 +76,7 @@ export const ExamStudyPlanner = ({ onBack }: ExamStudyPlannerProps) => {
   const subjects: Subject[] = dbSubjects.map(s => ({
     id: s.id,
     name: s.name,
-    examDate: s.created_at,
+    examDate: s.exam_date || s.created_at,
     dailyHours: 2,
     progress: 0,
     topics: (s.topics || []).map(t => ({
