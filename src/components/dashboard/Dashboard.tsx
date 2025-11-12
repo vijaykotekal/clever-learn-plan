@@ -63,7 +63,7 @@ export const Dashboard = ({ onNavigate }: DashboardProps) => {
     if (subjects.length > 0) {
       loadDashboardData();
     }
-  }, [subjects]);
+  }, [dbSubjects.length]);
 
   const loadDashboardData = () => {
     if (subjects.length === 0) return;

@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { Calendar, Clock, ArrowLeft, BookOpen, Target, Settings, Play, Eye } from "lucide-react";
+import { Calendar, Clock, ArrowLeft, BookOpen, Target, Settings, Play, Eye, Plus, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useSubjects } from "@/hooks/useSubjects";
 import { useStudyPlans } from "@/hooks/useStudyPlans";
@@ -52,7 +52,7 @@ interface TimetableEntry {
 }
 
 export const ExamStudyPlanner = ({ onBack }: ExamStudyPlannerProps) => {
-  const { subjects: dbSubjects, loading } = useSubjects();
+  const { subjects: dbSubjects, loading, addSubject } = useSubjects();
   const { savePlan } = useStudyPlans();
   const [viewingSubject, setViewingSubject] = useState<typeof dbSubjects[0] | null>(null);
   const [globalSettings, setGlobalSettings] = useState<GlobalSettings>({
@@ -62,7 +62,14 @@ export const ExamStudyPlanner = ({ onBack }: ExamStudyPlannerProps) => {
   });
   const [timetable, setTimetable] = useState<TimetableEntry[]>([]);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isAddingSubject, setIsAddingSubject] = useState(false);
   const [hasGeneratedTimetable, setHasGeneratedTimetable] = useState(false);
+  const [newSubjectData, setNewSubjectData] = useState({
+    name: "",
+    examDate: "",
+    dailyHours: 2,
+    topics: [""]
+  });
   const { toast } = useToast();
 
   // Transform database subjects to local format
@@ -203,6 +210,72 @@ export const ExamStudyPlanner = ({ onBack }: ExamStudyPlannerProps) => {
       total + subject.topics.filter(topic => topic.completed).length, 0
     );
   };
+
+  const handleAddSubject = async () => {
+    if (!newSubjectData.name.trim() || !newSubjectData.examDate) {
+      toast({
+        title: "Missing information",
+        description: "Please fill in all required fields",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const validTopics = newSubjectData.topics.filter(t => t.trim());
+    if (validTopics.length === 0) {
+      toast({
+        title: "No topics",
+        description: "Please add at least one topic",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    await addSubject(
+      newSubjectData.name,
+      newSubjectData.examDate,
+      newSubjectData.dailyHours,
+      validTopics
+    );
+
+    setNewSubjectData({
+      name: "",
+      examDate: "",
+      dailyHours: 2,
+      topics: [""]
+    });
+    setIsAddingSubject(false);
+    
+    toast({
+      title: "Subject added!",
+      description: "Your subject has been added successfully.",
+    });
+  };
+
+  const addTopicField = () => {
+    setNewSubjectData(prev => ({
+      ...prev,
+      topics: [...prev.topics, ""]
+    }));
+  };
+
+  const updateTopicField = (index: number, value: string) => {
+    setNewSubjectData(prev => ({
+      ...prev,
+      topics: prev.topics.map((t, i) => i === index ? value : t)
+    }));
+  };
+
+  const removeTopicField = (index: number) => {
+    setNewSubjectData(prev => ({
+      ...prev,
+      topics: prev.topics.filter((_, i) => i !== index)
+    }));
+  };
+
+  const hoursPerTopic = newSubjectData.topics.filter(t => t.trim()).length > 0
+    ? newSubjectData.dailyHours / newSubjectData.topics.filter(t => t.trim()).length
+    : 0;
 
   if (viewingSubject) {
     return (
@@ -354,14 +427,119 @@ export const ExamStudyPlanner = ({ onBack }: ExamStudyPlannerProps) => {
       {/* Subjects Overview */}
       <Card>
         <CardHeader>
-          <CardTitle>Subjects Overview</CardTitle>
-          <CardDescription>All subjects with equal time allocation</CardDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>Subjects Overview</CardTitle>
+              <CardDescription>All subjects with equal time allocation</CardDescription>
+            </div>
+            <Dialog open={isAddingSubject} onOpenChange={setIsAddingSubject}>
+              <DialogTrigger asChild>
+                <Button className="flex items-center gap-2">
+                  <Plus className="h-4 w-4" />
+                  Add Subject
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+                <DialogHeader>
+                  <DialogTitle>Add New Subject</DialogTitle>
+                  <DialogDescription>
+                    Create a subject with topics for your exam preparation
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4">
+                  <div>
+                    <Label htmlFor="subjectName">Subject Name</Label>
+                    <Input
+                      id="subjectName"
+                      value={newSubjectData.name}
+                      onChange={(e) => setNewSubjectData(prev => ({ ...prev, name: e.target.value }))}
+                      placeholder="e.g., Mathematics"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="examDate">Exam Date</Label>
+                    <Input
+                      id="examDate"
+                      type="date"
+                      value={newSubjectData.examDate}
+                      onChange={(e) => setNewSubjectData(prev => ({ ...prev, examDate: e.target.value }))}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="dailyHours">Daily Study Hours</Label>
+                    <Input
+                      id="dailyHours"
+                      type="number"
+                      min="0.5"
+                      max="12"
+                      step="0.5"
+                      value={newSubjectData.dailyHours}
+                      onChange={(e) => setNewSubjectData(prev => ({ ...prev, dailyHours: Number(e.target.value) }))}
+                    />
+                  </div>
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <Label>Topics</Label>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={addTopicField}
+                      >
+                        <Plus className="h-4 w-4 mr-1" />
+                        Add Topic
+                      </Button>
+                    </div>
+                    <div className="space-y-2">
+                      {newSubjectData.topics.map((topic, index) => (
+                        <div key={index} className="flex items-center gap-2">
+                          <Input
+                            value={topic}
+                            onChange={(e) => updateTopicField(index, e.target.value)}
+                            placeholder={`Topic ${index + 1}`}
+                          />
+                          <Badge variant="secondary" className="whitespace-nowrap">
+                            {hoursPerTopic.toFixed(1)}h
+                          </Badge>
+                          {newSubjectData.topics.length > 1 && (
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => removeTopicField(index)}
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                    <p className="text-sm text-muted-foreground mt-2">
+                      Each topic will get approximately {hoursPerTopic.toFixed(1)} hours per day
+                    </p>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button onClick={handleAddSubject} className="flex-1">
+                      Add Subject
+                    </Button>
+                    <Button variant="outline" onClick={() => setIsAddingSubject(false)}>
+                      Cancel
+                    </Button>
+                  </div>
+                </div>
+              </DialogContent>
+            </Dialog>
+          </div>
         </CardHeader>
         <CardContent>
           {subjects.length === 0 ? (
             <div className="text-center py-12">
               <BookOpen className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-              <p className="text-muted-foreground">No subjects added yet. Please add subjects first.</p>
+              <p className="text-muted-foreground mb-4">No subjects added yet. Click "Add Subject" to get started.</p>
+              <Button onClick={() => setIsAddingSubject(true)} variant="outline">
+                <Plus className="h-4 w-4 mr-2" />
+                Add Your First Subject
+              </Button>
             </div>
           ) : (
             <div className="space-y-4">
