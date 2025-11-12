@@ -6,7 +6,6 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
 import { StudyModes } from "./pages/StudyModes";
 import { ChatBot } from "./pages/ChatBot";
-import PresentationDownload from "./pages/PresentationDownload";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -21,7 +20,6 @@ const App = () => (
           <Route path="/" element={<Index />} />
           <Route path="/study-modes" element={<StudyModes onBack={() => window.history.back()} />} />
           <Route path="/chatbot" element={<ChatBot onBack={() => window.history.back()} />} />
-          <Route path="/presentation" element={<PresentationDownload />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

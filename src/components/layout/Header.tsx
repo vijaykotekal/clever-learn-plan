@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { BookOpen, Brain, Calendar, User, Settings, History, MessageSquare, FileDown } from "lucide-react";
+import { BookOpen, Brain, Calendar, User, Settings, History, MessageSquare } from "lucide-react";
 
 interface HeaderProps {
   currentView: string;
@@ -84,15 +84,6 @@ export const Header = ({
             >
               <MessageSquare className="h-4 w-4" />
               AI Chat
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => window.location.href = "/presentation"}
-              className="flex items-center gap-2"
-            >
-              <FileDown className="h-4 w-4" />
-              PPT
             </Button>
           </nav>
         )}
